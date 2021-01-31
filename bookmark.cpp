@@ -1,6 +1,12 @@
 #include "bookmark.h"
 
-Bookmark::Bookmark()
-{
 
+void Bookmark::applyPainter(BookmarkPainter &bp)
+{
+    bp.paint(*this);
+}
+
+void MultiBookmark::applyPainter(BookmarkPainter &bp)
+{
+    bp.paint(*this);
 }

@@ -1,8 +1,8 @@
 QT       += core gui
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+greaterThan(QT_MAJOR_VERSION, 4): QT += sql widgets
 
-CONFIG += c++11
+CONFIG += c++17
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -16,14 +16,38 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    bookmark.cpp \
+    bookmarkmanager.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    ruler.cpp \
+    rulerview.cpp \
+    sqliteworker.cpp \
+    timeconvertor.cpp
 
 HEADERS += \
-    mainwindow.h
+    bookmark.h \
+    bookmarkmanager.h \
+    common.h \
+    mainwindow.h \
+    ruler.h \
+    rulerview.h \
+    sqliteworker.h \
+    timeconvertor.h
 
 FORMS += \
     mainwindow.ui
+
+INCLUDEPATH += "$$IN_PWD/sqlite3/include"
+
+CONFIG(release, debug|release) {
+  win32:LIBS += -L"$$IN_PWD/sqlite3/lib/" -lsqlite3
+  unix:LIBS += -L"$$IN_PWD/sqlite3/lib/" -lsqlite3
+}
+CONFIG(debug, debug|release) {
+  win32:LIBS += -L"$$IN_PWD/sqlite3/lib/" -lsqlite3
+  unix:LIBS += -L"$$IN_PWD/sqlite3/lib/" -lsqlite3
+}
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

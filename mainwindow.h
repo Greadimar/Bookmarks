@@ -1,8 +1,8 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
-
+#include "rulerview.h"
 #include <QMainWindow>
-
+#include <QPointer>
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -17,5 +17,12 @@ public:
 
 private:
     Ui::MainWindow *ui;
+    QSharedPointer<TimeConvertor> timeconvertor;
+    QPointer<BookmarkManager> bookmarkMngr;
+    QPointer<RuleView> view;
+
+
+    QThread* bookmngrThr;
+    void drawOpenGl();
 };
 #endif // MAINWINDOW_H

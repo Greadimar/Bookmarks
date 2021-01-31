@@ -1,6 +1,2 @@
-#include "scene.h"
+#include "ruler.h"
 
-Scene::Scene()
-{
-
-}
