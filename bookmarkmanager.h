@@ -2,11 +2,11 @@
 #define BOOKMARKMANAGER_H
 #include "bookmark.h"
 #include "timeconvertor.h"
-#include "sqliteworker.h"
+//#include "sqliteworker.h"
 #include <QThread>
 #include <QDebug>
 #include <QObject>
-
+#include "qfilebuffer.h"
 
 using BookmarkList = std::vector<Bookmark>;
 class BookmarkManager: public QObject
@@ -21,7 +21,7 @@ public:
         bookmarksToCompute(&bookmarksBuffer2),
         m_timeconvertor(convertor)
     {
-        sqlworker = new SqliteWorker;
+        //sqlworker = new SqliteWorker(isRunning);
     };
     void stop(){
         isRunning.store(false);
@@ -46,7 +46,9 @@ public:
     BookmarkList* bookmarksToCompute;
 
 
-    SqliteWorker *getSqlworker() const;
+   // SqliteWorker *getSqlworker() const;
+
+    QFileBuffer& getBuf();
 
 private:
     QSharedPointer<TimeConvertor> m_timeconvertor;
@@ -57,15 +59,25 @@ private:
 
     QVector<QSharedPointer<MultiBookmark>> mVec;
 
-    SqliteWorker* sqlworker;
+   // SqliteWorker* sqlworker;
+    QFileBuffer buf;
 
     int curRulerWidth{0};
+    void collect(){
+        qDebug() << "recollect";
+        auto startCollecting = std::chrono::system_clock::now();
+        msecs spread = m_timeconvertor->getUnitingSpread();
+        int startCurBm = 0;
+        int startNextBm = 0;
 
+        auto timeToCollect = std::chrono::system_clock::now() - startCollecting;
+        qDebug() << "timeToReCollectVec" << timeToCollect.count();
+    }
     void recollect(){
          qDebug() << "recollect";
          auto startCollecting = std::chrono::system_clock::now();
 
-         QMutableVectorIterator<QSharedPointer<MultiBookmark>> it(mVec);
+         QMutableVectorIterator<MultiBookmark> it(mVec);
          msecs spread = m_timeconvertor->getUnitingSpread();
          auto parse = [=](QMutableVectorIterator<QSharedPointer<MultiBookmark>>& it){
              auto& v = mVec;
@@ -120,7 +132,6 @@ private:
          auto timeToCollect = std::chrono::system_clock::now() - startCollecting;
          qDebug() << "timeToReCollectVec" << timeToCollect.count();
     }
-
 
     void collectBookmarksForDisplay(){
         auto startCollecting = std::chrono::system_clock::now();

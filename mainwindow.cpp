@@ -42,7 +42,7 @@ MainWindow::MainWindow(QWidget *parent)
         QMetaObject::invokeMethod(bookmarkMngr.data(), "generateBookmarks", Q_ARG(int, 100000000));
        // bookmarkMngr->start();
     });
-    connect(bookmarkMngr->getSqlworker(), &SqliteWorker::sendPrg, this, [=](int val){
+    connect(&bookmarkMngr->getBuf(), &QFileBuffer::sendPrg, this, [=](int val){
         ui->progressBar->setValue(val);
     });
   //  menu->addA

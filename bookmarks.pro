@@ -18,18 +18,22 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     bookmark.cpp \
     bookmarkmanager.cpp \
+    filemap.cpp \
     main.cpp \
     mainwindow.cpp \
+    qfilebuffer.cpp \
     ruler.cpp \
     rulerview.cpp \
-    sqliteworker.cpp \
+   # sqliteworker.cpp \
     timeconvertor.cpp
 
 HEADERS += \
     bookmark.h \
     bookmarkmanager.h \
     common.h \
+    filemap.h \
     mainwindow.h \
+    qfilebuffer.h \
     ruler.h \
     rulerview.h \
     sqliteworker.h \

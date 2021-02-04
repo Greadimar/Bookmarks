@@ -3,6 +3,7 @@
 #include "sqlite3.h"
 #include "bookmark.h"
 #include "timeconvertor.h"
+#include <optional>
 #include <QObject>
 
 #include <queue>
@@ -16,8 +17,9 @@ public:
         dbOnHard,
         dbOnRAM,
     };
-    SqliteWorker(){};
+    SqliteWorker(std::atomic_bool& isRunning): isRunning(isRunning){};
     void startDb();
+    void closeDb();
     void generateBookmarks(int count, const QSharedPointer<TimeConvertor> &tc);
     QVector<Bookmark> getBookmarks(msecs start, msecs end);
 
@@ -28,6 +30,7 @@ signals:
     void serviceMsg(QString msg);
     void sendPrg(int prg);
 private:
+    std::atomic_bool& isRunning;
     LoggingMode m_mode;
     enum SessionStatus{
         idle, work
@@ -56,10 +59,10 @@ private:
     void beginTransaction();
     void commitTransaction();
     void createTables();
-    MultiBookmark getMultibookmarkIn(const msecs& start, const msecs& end);
+    std::optional<BookmarkZone> getBookmarkZone(const msecs& start, const msecs& end);
     bool checkDb();
-    int getLastId();
-    int getLastMsgId();
+
+    bool checkPrepareReturn(const int& rc);
     /*  static int idGetter(void *, int, char **, char **);*/
 
     using CallbackDataGetter = int (*)(void*, int, char **, char **);

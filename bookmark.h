@@ -6,47 +6,51 @@
 #include <variant>
 #include <deque>
 class BookmarkPainter;
+constexpr int namelength = 64;
 struct Bookmark
 {
 
     Bookmark(){};
-    Bookmark(const msecs& start, const msecs& end) : start(start), end(end){
+    Bookmark(const int& start, const int& end) : start(start), end(end){
+
+    }
+    Bookmark(const int& start, const int& end, const QString &rname) : start(start), end(end),
+    name(rname.mid(0, namelength).toStdString().data())
+    {
 
     }
     virtual ~Bookmark(){}
     virtual void applyPainter(BookmarkPainter& bp);
-    QString name;
-    msecs start{0};
-    msecs end{10000};
+
+    int start{0};
+    int end{10000};
+    char* name;
+
 private:
 
 };
+
+
 struct MultiBookmark: public Bookmark{
-    MultiBookmark(){
+    MultiBookmark(){}
+    MultiBookmark(const int& start, const int& end): Bookmark(start, end), count(1){
 
     }
-    MultiBookmark(std::deque<ShpBookmark> deq): bookmarksDeq(deq){
-
-    }
-    MultiBookmark(const ShpBookmark& bm, const msecs& end):
-        Bookmark(bm->start, end){
-        bookmarksDeq.push_back(bm);}
-    std::deque<ShpBookmark> bookmarksDeq;
-    void adjustStart(){
-        if (bookmarksDeq.size() != 0){
-            start = bookmarksDeq[0]->start;
-        }
-    }
-    void adjustEnd(msecs spread){
-        if (bookmarksDeq.size() == 1){
-            end = bookmarksDeq[0]->end;
-        }
-        else{
-            end = start + spread;
-        }
-    }
+    void reset(const int& start, const int& end, const QString &rname){
+        this->start = start, this->end = end; count =1; name = rname.mid(0, namelength).toStdString().data();}
+    int count = 0;
     void applyPainter(BookmarkPainter &bp) override;
 };
+struct BookmarkZone{
+    static BookmarkZone constructFromOne(Bookmark bm){
+        return {bm.start, bm.end, {bm}, 0};
+    }
+    msecs start{0};
+    msecs end{10000};
+    std::deque<Bookmark> bmsToSplit;
+    int count = 0;
+};
+
 
 using BookmarkVar = std::variant<Bookmark, MultiBookmark>;
 
