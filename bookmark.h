@@ -36,15 +36,16 @@ struct MultiBookmark: public Bookmark{
     MultiBookmark(const int& start, const int& end): Bookmark(start, end), count(1){
 
     }
+    QVector<int> forSeek;
     void reset(const int& start, const int& end, const QString &rname){
         this->start = start, this->end = end; count =1; name = rname.mid(0, namelength).toStdString().data();}
     int count = 0;
     void applyPainter(BookmarkPainter &bp) override;
 };
 struct BookmarkZone{
-    static BookmarkZone constructFromOne(Bookmark bm){
-        return {bm.start, bm.end, {bm}, 0};
-    }
+//    static BookmarkZone constructFromOne(Bookmark bm){
+//       // return {bm.start, bm.end, {bm}, 0};
+//    }
     msecs start{0};
     msecs end{10000};
     std::deque<Bookmark> bmsToSplit;

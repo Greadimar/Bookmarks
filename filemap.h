@@ -1,7 +1,8 @@
 #ifndef FILEMAP_H
 #define FILEMAP_H
+#include "vector"
 
-int closest(std::vector<int> const& vec, int value) {
+int closest(const std::vector<int> & vec, int value) {
     auto const it = std::lower_bound(vec.begin(), vec.end(), value);
     if (it == vec.end()) { return -1; }
 

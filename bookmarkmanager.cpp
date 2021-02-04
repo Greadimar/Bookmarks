@@ -24,6 +24,7 @@ bool BookmarkManager::generateBookmarks(int count){
         });*/
 
     auto timeToCollect = std::chrono::system_clock::now() - startCollecting;
+    collect();
     qDebug() << "timeTognrt" << timeToCollect.count();
     //        mVec.resize(bookmarks.size());
     //         msecs unitingSpread = m_timeconvertor->getUnitingSpread();

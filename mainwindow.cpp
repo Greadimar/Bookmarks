@@ -39,7 +39,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(generateAction, &QAction::triggered, this, [=](){
         bookmarkMngr->stop();
         bool isGenerated = false;
-        QMetaObject::invokeMethod(bookmarkMngr.data(), "generateBookmarks", Q_ARG(int, 100000000));
+        QMetaObject::invokeMethod(bookmarkMngr.data(), "generateBookmarks", Q_ARG(int, 100000));
        // bookmarkMngr->start();
     });
     connect(&bookmarkMngr->getBuf(), &QFileBuffer::sendPrg, this, [=](int val){

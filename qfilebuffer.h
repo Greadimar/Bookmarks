@@ -11,6 +11,9 @@ class QFileBuffer: public QObject{
 
     QFile file;
     QDataStream ds;
+
+    QFile fileB;
+    QDataStream dsB;
     QMap<msecs, QMap<msecs, int>> navMap;
 signals:
     void sendPrg(int);
@@ -19,7 +22,8 @@ public:
     ~QFileBuffer(){file.close();}
     QByteArray buffer;
     void generateFile(QSharedPointer<TimeConvertor> tc, const std::atomic_bool& isRunning, int count);
-    QVector<std::variant<Bookmark, MultiBookmark>>
+    void generateFileB(QSharedPointer<TimeConvertor> tc, const std::atomic_bool& isRunning, int count);
+    QVector<MultiBookmark>
     getBookmarks(msecs start, msecs end, QSharedPointer<TimeConvertor> tc);
     //       void adjustEnd(msecs spread){
     //           if (count )

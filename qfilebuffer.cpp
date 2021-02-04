@@ -4,10 +4,13 @@
 #include <random>
 #include <QDebug>
 QFileBuffer::QFileBuffer(): file(QDir::currentPath()+"b.dat"),  ds(&file)
-{
+, fileB(QDir::currentPath() + "bb.dat"), dsB(&fileB) {
 
     file.open(QIODevice::ReadWrite);
     file.resize(0);
+
+    fileB.open(QIODevice::ReadWrite);
+    fileB.resize(0);
 }
 
 void QFileBuffer::generateFile(QSharedPointer<TimeConvertor> tc, const std::atomic_bool& isRunning, int count)
@@ -32,7 +35,7 @@ void QFileBuffer::generateFile(QSharedPointer<TimeConvertor> tc, const std::atom
 
     int k = 0;
     while (it < count){
-        if (!isRunning) break;
+        //if (!isRunning) break;
         QVector<Bookmark> vec;
         vec.reserve(chunkToGenerate);
         int curChunkEnd = it + chunkToGenerate;
@@ -64,11 +67,28 @@ void QFileBuffer::generateFile(QSharedPointer<TimeConvertor> tc, const std::atom
         }
         navMap.insert(curChunkKey, curChunkMap);
 
-        emit sendPrg(100);
     }
+
+    emit sendPrg(100);
 }
 
-QVector<std::variant<Bookmark, MultiBookmark> > QFileBuffer::getBookmarks(msecs start, msecs end, QSharedPointer<TimeConvertor> tc)
+void QFileBuffer::generateFileB(QSharedPointer<TimeConvertor> tc, const std::atomic_bool &isRunning, int count)
+{
+//    file.seek(0);
+//    int curStart{0}; int curEnd{}; char name[namelength];
+//    int nextStart{0};
+//    for (int i = 0; i < count; i++){
+//        MultiBookmark mb;
+
+//        ds >> nextStart;
+
+//        if (curStart > nextStart){
+
+//        }
+//    }
+}
+
+QVector<MultiBookmark> QFileBuffer::getBookmarks(msecs start, msecs end, QSharedPointer<TimeConvertor> tc)
 {
     auto closest = getLowestKey(start, navMap.keys());
     if (!closest){qDebug() << "no big key"; return {};};
@@ -77,7 +97,7 @@ QVector<std::variant<Bookmark, MultiBookmark> > QFileBuffer::getBookmarks(msecs 
     if (!closestInner){qDebug() << "no big key"; return {};};
     int row = chunkMap.value(closestInner.value());
     file.seek(row);
-    QVector<std::variant<Bookmark, MultiBookmark>> mbVec;
+    QVector<MultiBookmark> mbVec;
     MultiBookmark* lastMbk;
     int prevStart, prevEnd; QString prevName;
     int curStart, curEnd; QString name;
@@ -95,18 +115,18 @@ QVector<std::variant<Bookmark, MultiBookmark> > QFileBuffer::getBookmarks(msecs 
             mbk.count++;
         }
         else{
-            if (mbk.count == 1){
-                mbVec.append(static_cast<Bookmark&>(mbk));
-                ds >> curEnd >> name;
-                mbk.reset(curStart, curEnd, name);
-                curMbkEnd = curStart + maxMbkWidth;
-            }
-            else{
+//            if (mbk.count == 1){
                 mbVec.append(mbk);
                 ds >> curEnd >> name;
                 mbk.reset(curStart, curEnd, name);
                 curMbkEnd = curStart + maxMbkWidth;
-            }
+//            }
+//            else{
+//                mbVec.append(mbk);
+//                ds >> curEnd >> name;
+//                mbk.reset(curStart, curEnd, name);
+//                curMbkEnd = curStart + maxMbkWidth;
+//            }
         }
     }
     mbVec.append(mbk);

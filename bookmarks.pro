@@ -18,7 +18,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     bookmark.cpp \
     bookmarkmanager.cpp \
-    filemap.cpp \
+  #  filemap.cpp \
     main.cpp \
     mainwindow.cpp \
     qfilebuffer.cpp \
@@ -31,7 +31,7 @@ HEADERS += \
     bookmark.h \
     bookmarkmanager.h \
     common.h \
-    filemap.h \
+  #  filemap.h \
     mainwindow.h \
     qfilebuffer.h \
     ruler.h \

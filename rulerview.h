@@ -144,7 +144,7 @@ private:
     //
     QPointer<BookmarkManager> m_bkmngr;
     QSharedPointer<TimeConvertor> m_timeconv;
-
+    ViewPositions viewPositions;
     //pens
     QPen blackPen{Qt::black, 1};
     QPen boldBlackPen{Qt::black, 3};
@@ -164,13 +164,15 @@ private:
         m_scene.addItem(t);
      //   setSceneRect();
     ///1     t->setPos(111,111);
-        auto r = new Ruler(m_timeconv);
+        auto r = new Ruler(this->viewPositions, m_timeconv);
         r->setPos(0,0);
         m_scene.addItem(r);
         this->setAlignment(Qt::AlignLeft | Qt::AlignTop);
         this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
         this->setMinimumHeight(100);
         this->setMinimumWidth(100);
+
+        auto r = new Book
 
     }
 private:
