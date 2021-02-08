@@ -116,7 +116,8 @@ public:
     explicit RuleView(QPointer<BookmarkManager> mngr, QSharedPointer<TimeConvertor> timec,
                      QWidget *parent = nullptr): m_bkmngr(mngr), m_timeconv(timec){
         setRenderHints(QPainter::SmoothPixmapTransform| QPainter::TextAntialiasing);
-        setCacheMode(QGraphicsView::CacheNone); // change ??
+       // setCacheMode(QGraphicsView::CacheNone); // change ??
+        this->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
         setFrameStyle(0); // to remove borders between view and scene
         setSceneRect(0, 0, this->width(), height()); // check without
 
@@ -127,9 +128,11 @@ public:
       //  m_scene.setB
         initElements();
 
-        QTimer::singleShot(100, this, [=](){
-            qDebug() << "w" << scene()->width();
+        auto t = new QTimer();
+        connect(t, &QTimer::timeout, this, [=](){
+            scene()->advance();
         });
+        t->start(50);
 
     }
     ~RuleView(){}
@@ -145,6 +148,7 @@ private:
     QPointer<BookmarkManager> m_bkmngr;
     QSharedPointer<TimeConvertor> m_timeconv;
     ViewPositions viewPositions;
+    Palette plt;
     //pens
     QPen blackPen{Qt::black, 1};
     QPen boldBlackPen{Qt::black, 3};
@@ -164,15 +168,17 @@ private:
         m_scene.addItem(t);
      //   setSceneRect();
     ///1     t->setPos(111,111);
-        auto r = new Ruler(this->viewPositions, m_timeconv);
+        auto r = new Ruler(this->plt, this->viewPositions, m_timeconv);
+        auto s = new BookmarksLine(this->plt, m_bkmngr, viewPositions, m_timeconv );
         r->setPos(0,0);
         m_scene.addItem(r);
+        m_scene.addItem(s);
         this->setAlignment(Qt::AlignLeft | Qt::AlignTop);
         this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
         this->setMinimumHeight(100);
         this->setMinimumWidth(100);
 
-        auto r = new Book
+       // auto r = new Book
 
     }
 private:

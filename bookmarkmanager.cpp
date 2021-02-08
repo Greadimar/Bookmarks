@@ -6,7 +6,7 @@ bool BookmarkManager::generateBookmarks(int count){
    // sqlworker->startDb();
     auto startCollecting = std::chrono::system_clock::now();
     //sqlworker->generateBookmarks(count, m_timeconvertor);
-    this->buf.generateFile(m_timeconvertor, isRunning, count);
+    this->m_fileworker.generateFile(m_timeconvertor, isRunning, count);
     /*     bookmarks.clear();
         bookmarks.reserve(count);
         std::random_device rd;
@@ -38,14 +38,15 @@ bool BookmarkManager::generateBookmarks(int count){
     //        }
     //  collectBookmarksForDisplay();
     //  mVec.squeeze();
-    //  start();
+     start();
     return true;
 }
 
-QFileBuffer &BookmarkManager::getBuf()
+QFileBuffer &BookmarkManager::getFileWorker()
 {
-    return buf;
+    return m_fileworker;
 }
+
 
 //SqliteWorker *BookmarkManager::getSqlworker() const
 //{

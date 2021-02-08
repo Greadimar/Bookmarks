@@ -12,19 +12,22 @@ struct Bookmark
 
     Bookmark(){};
     Bookmark(const int& start, const int& end) : start(start), end(end){
-
     }
-    Bookmark(const int& start, const int& end, const QString &rname) : start(start), end(end),
-    name(rname.mid(0, namelength).toStdString().data())
+    Bookmark(const int& start, const int& end, const QString &rname) : start(start), end(end), name(rname)
     {
-
+       // setName(rname);
     }
-    virtual ~Bookmark(){}
-    virtual void applyPainter(BookmarkPainter& bp);
 
+    virtual ~Bookmark(){}
+    //virtual void applyPainter(BookmarkPainter& bp);
+    void setName(const QString& bkName){
+       // memcpy(name, bkName.data(), namelength);
+        name = bkName;
+      //  std::cop
+    }
     int start{0};
     int end{10000};
-    char* name;
+    QString name{"some name"};
 
 private:
 
@@ -38,14 +41,23 @@ struct MultiBookmark: public Bookmark{
     }
     QVector<int> forSeek;
     void reset(const int& start, const int& end, const QString &rname){
-        this->start = start, this->end = end; count =1; name = rname.mid(0, namelength).toStdString().data();}
+        this->start = start;
+        this->end = end;
+        count =1;
+        setName(rname);
+    }
     int count = 0;
-    void applyPainter(BookmarkPainter &bp) override;
+   Bookmark& detachVar(){
+        return (count > 1)? *this : static_cast<Bookmark&>(*this);
+    }
+
+    //  void applyPainter(BookmarkPainter &bp) override;
 };
+
 struct BookmarkZone{
-//    static BookmarkZone constructFromOne(Bookmark bm){
-//       // return {bm.start, bm.end, {bm}, 0};
-//    }
+    //    static BookmarkZone constructFromOne(Bookmark bm){
+    //       // return {bm.start, bm.end, {bm}, 0};
+    //    }
     msecs start{0};
     msecs end{10000};
     std::deque<Bookmark> bmsToSplit;
@@ -59,12 +71,7 @@ class BookmarkPainter{
     const QPainter& m_painter;
 public:
     BookmarkPainter( const QPainter& p): m_painter(p) {}
-    void paint(const Bookmark& b){
-        //implement
-    }
-    void paint(const MultiBookmark& mb){
-        //implement
-    }
+
 };
 
 
@@ -76,7 +83,7 @@ public:
     BookmarkItem(const ShpBookmark& bookmark)  {
     }
     QRectF boundingRect() const override{
-       // return QRectF(0,0,)
+        // return QRectF(0,0,)
     }
 
 

@@ -25,6 +25,8 @@ public:
     void generateFileB(QSharedPointer<TimeConvertor> tc, const std::atomic_bool& isRunning, int count);
     QVector<MultiBookmark>
     getBookmarks(msecs start, msecs end, QSharedPointer<TimeConvertor> tc);
+    QVector<std::variant<Bookmark, MultiBookmark>>
+    getBookmarksVar(msecs start, msecs end, QSharedPointer<TimeConvertor> tc);
     //       void adjustEnd(msecs spread){
     //           if (count )
     //       }

@@ -14,11 +14,13 @@
 #include "bookmarkmanager.h"
 #include <QPointer>
 #include <QGraphicsSceneWheelEvent>
+#include <QStyleOptionGraphicsItem>
+#include <variant>
 struct Palette{
     QColor rulerBorders{"#ed9121"};
-    QColor rulerLines{Qt::darkGray};
+    QColor rulerLines{Qt::black};
     QColor rulerBackground{"#FEFED3"};
-    QColor labels{Qt::darkGray};
+    QColor labels{Qt::black};
     QColor singleBookmarksBorders{"#024064"};
     QColor singleBookmarksBackground{"#3CB3C0"};
     QColor multiBookmarksBorders{"#37782C"};
@@ -33,6 +35,7 @@ struct ViewPositions{
     const int rightMargin = 5;
     int bookmarksTopY{10};
     int bookmarksBottomY{100};
+    int bookmarksHeight = 90;
     int rulerWidth = 100;
     float zoomRatio = 1; //1 - 24h, 2 = 1h
     int dragPosition = 0;
@@ -40,7 +43,7 @@ struct ViewPositions{
 
 class Ruler: public QGraphicsItem{
 public:
-    Ruler(const Palette& plt, ViewPositions& vp, const QSharedPointer<TimeConvertor>& c): m_plt(plt), m_vp(vp), m_timeConvertor(c){
+    Ruler(const Palette& plt, ViewPositions& vp, const QSharedPointer<TimeConvertor>& c): m_plt(plt), m_vp(vp), m_tc(c){
         this->font.setStyleStrategy(QFont::ForceOutline);
         QFontMetrics fm(font);
 
@@ -67,12 +70,11 @@ private:
     }
 
     void paint(QPainter *p, const QStyleOptionGraphicsItem *, QWidget *) override {
-        p->save();
+      //  p->save();
         QPointF curPos = scenePos();
         int viewWidth = scene()->views().first()->width();
         m_vp.rulerWidth = viewWidth - m_vp.leftMargin - m_vp.rightMargin;
         m_tc->rulerWidth.store(m_vp.rulerWidth); //std::rel_ack?
-
         m_tc->hourWidthInPx = (m_vp.rulerWidth/(-23 * m_vp.zoomRatio + 47)); //y = 47 - 23x
         //drawing ruler
         p->setPen(m_plt.rulerBackground);
@@ -101,12 +103,12 @@ private:
             }
             i += m_tc->hourWidthInPx;
         }
-        p->restore();
+       // p->restore();
     }
 
     virtual void wheelEvent(QGraphicsSceneWheelEvent *event) override{
         int delta = event->delta();
-        static const float wheelScrollRatio = 0.01;
+        static const float wheelScrollRatio = 0.001;
         float targetZoomRatio{m_vp.zoomRatio};
         targetZoomRatio += delta * wheelScrollRatio;
         if (targetZoomRatio < 1) targetZoomRatio = 1;
@@ -118,18 +120,19 @@ private:
 
 class BookmarksLine: public QGraphicsItem{
 public:
-    BookmarksLine(const Palette& plt, QPointer<BookmarkManager> bmkMngr, ViewPositions& vp, const QSharedPointer<TimeConvertor>& c): m_plt(plt), m_bmkMngr(bmkMngr), m_vp(vp), m_timeConvertor(c){
+    BookmarksLine(const Palette& plt, QPointer<BookmarkManager> bmkMngr, ViewPositions& vp, const QSharedPointer<TimeConvertor>& c): m_plt(plt), m_bmkMngr(bmkMngr), m_vp(vp), m_tc(c){
         this->font.setStyleStrategy(QFont::ForceOutline);
         QFontMetrics fm(font);
-        vp.bookmarksBottomY = vp.bookmarksTopY + height;
+        vp.bookmarksBottomY = vp.bookmarksTopY + vp.bookmarksHeight;
     }
 private:
-    Palette& m_plt;
+    const Palette& m_plt;
     QPointer<BookmarkManager> m_bmkMngr;
     const ViewPositions& m_vp;
-    QSharedPointer<TimeConvertor> m_timeConvertor;
+    QSharedPointer<TimeConvertor> m_tc;
     QFont font{"Times", 10};
-    int height = 50;
+    const int multiBoookmarkWidth = 100;
+    const int borderWidth = 2;
     QRectF boundingRect() const override {
         //  int w = scene()->views().first()->width();
         //   return QRectF{QPointF{0.,0.},QPointF{static_cast<double>(w),30}};
@@ -141,45 +144,73 @@ private:
 
         }
     }
-    void paint(QPainter *p, const QStyleOptionGraphicsItem *, QWidget *) override {
+    void paint(QPainter *p, const QStyleOptionGraphicsItem *st, QWidget *) override {
         QPointF curPos = scenePos();
         int viewWidth = scene()->views().first()->width();
         int width = viewWidth - m_vp.leftMargin - m_vp.rightMargin;
         bool expectedIsSwapping = true;
-        m_bmkMngr->toSwap.store(true);
+//        m_bmkMngr->toSwap.store(true);
 
-        while (m_bmkMngr->toSwap.load(std::memory_order_seq_cst)){
-            QApplication::processEvents();
+//        while (m_bmkMngr->toSwap.load(std::memory_order_seq_cst)){
+//           // QApplication::processEvents();
+//        }
+
+        //auto& readyBufPtr = m_bmkMngr->readyBuffer;
+//        auto vecToDisplay = readyBufPtr.load();
+      //  while(m_bmkMngr->stale.exchange(true)){
+     //       QGuiApplication::processEvents();
+      ///  }
+      //
+
+        //while (m_bmkMngr->stale.exchange(true));
+        //if(m_bmkMngr->displayBufIsBusy.exchange(true)) return;
+        qDebug() << "paint: get bufPtr LOCK";
+         // auto& displayBufPtr = m_bmkMngr->displayBuffer;
+        m_bmkMngr->mutex.lock();
+        auto&& vec = *m_bmkMngr->displayBuffer;
+
+        for( auto& b: vec){
+             if (b.count == 1) paintBk(b, p, st);
+             else paintMbk(b, p, st);
         }
-        BookmarkVec* vecToDisplay = m_bmkMngr->bookmarksToDisplay;
+        m_bmkMngr->mutex.unlock();
+        m_bmkMngr->displayBufIsBusy.store(false);
+                qDebug() << "paint: UNLOCK";
+    }
+
+    void paintBk(const Bookmark& b, QPainter* p, const QStyleOptionGraphicsItem *st){
+         p->setPen(QPen(m_plt.singleBookmarksBorders, 2));
+         QRectF bkRect(m_tc->getPxPosFromMsec(b.start), m_vp.bookmarksTopY,
+                m_tc->getPxPosFromMsec(b.end), m_vp.bookmarksBottomY);
+         QPainterPath pp;
+         pp.addRoundedRect(bkRect, 5, 5);
+         p->fillPath(pp, QBrush(m_plt.singleBookmarksBackground));
+         p->drawRoundedRect(bkRect, 5, 5);
+         QString name{b.name};
+
+         QPointF namePos{bkRect.x() + bkRect.width()/2 + st->fontMetrics.horizontalAdvance(name)/2,
+                     bkRect.y() + 2*bkRect.height()/3};
+         p->drawText(namePos, name);
+    }
+    void paintMbk(const MultiBookmark& mb, QPainter* p, const QStyleOptionGraphicsItem *st){
+         p->setPen(QPen(m_plt.multiBookmarksBorders, 2));
+         QPoint posTopLeft{m_tc->getPxPosFromMsec(mb.start), m_vp.bookmarksTopY};
+
+         int w = posTopLeft.rx() + multiBoookmarkWidth - borderWidth;
+         int h = m_vp.bookmarksHeight;
+         qDebug() << "painting bk: " << posTopLeft << w << h;
+         QRectF bkRect(posTopLeft.rx(), posTopLeft.ry(), w, h);
+         QPainterPath pp;
+         pp.addRoundedRect(bkRect, 5, 5);
+        // p->fillPath(pp, QBrush(m_plt.multiBookmarksBackground));
+         p->drawRect(bkRect);
+         QString name = {QString::number(mb.count)};
 
 
 
-        float hourWidthInPx = rulerWidth/24.;
-        p->setPen(QColor{"#f0fff0"});
-        p->drawRect(0, 0, viewWidth,  hourLabelsBottomPos);
-        p->setPen(QColor{"#ed9121"});
-        p->drawRect(rulerMargin, 0, rulerWidth,  hourLabelsBottomPos);
-        p->setPen(QPen(QColor{Qt::black}, 2));
-
-        p->setFont(font);
-        p->save();
-        //  p->scale(0.1, 0.1); //?
-
-        int time{0};
-        float i = rulerMargin;
-        for (; time < 10; time++){
-            p->drawLine({curPos.rx() + i, curPos.ry()}, QPointF{curPos.rx() + i, curPos.ry() + linesHeight});
-            p->drawText(QPointF{i - hour1xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(time));
-            i += hourWidthInPx;
-        }
-        for (; time <= 24; time++){
-            p->drawLine({curPos.rx() + i, curPos.ry()}, QPointF{curPos.rx() + i, curPos.ry() + linesHeight});
-            p->drawText(QPointF{i - hour2xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(time));
-            i += hourWidthInPx;
-        }
-
-
+         QPointF namePos{bkRect.x() + bkRect.width()/2 - st->fontMetrics.horizontalAdvance(name)/2,
+                     bkRect.y() + 2*bkRect.height()/3};
+         p->drawText(namePos, name);
 
     }
 

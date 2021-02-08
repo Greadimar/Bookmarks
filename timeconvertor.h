@@ -14,13 +14,20 @@ public:
     std::atomic<msecs> left = msecs(0);
     std::atomic<msecs> right = msecsInDay;
     msecs getUnitingSpread(){
-        return msecs{(msecsInDay.count()/rulerWidth.load(std::memory_order_relaxed))*pxSpreadToUnite};
+        return msecs{(msecsInDay.count()/rulerWidth.load())*pxSpreadToUnite};
     }
     msecs getMsecFromPxPosition(int xPos, int xShift = 0){
         xPos += xShift;
         return msecs(static_cast<int>((xPos * msecsInhour.count()) / hourWidthInPx));
     }
-    std::atomic<int> rulerWidth{0};
+    int getPxPosFromMsec(msecs mark){
+        return mark.count() * (hourWidthInPx / msecsInhour.count());
+    }
+    int getPxPosFromMsec(int mark){
+        double pxInMsecs = hourWidthInPx / msecsInhour.count();
+        return mark * pxInMsecs;
+    }
+    std::atomic<int> rulerWidth{100};
 };
 
 #endif // TIMECONVERTOR_H

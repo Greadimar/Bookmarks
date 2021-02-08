@@ -17,7 +17,7 @@ void QFileBuffer::generateFile(QSharedPointer<TimeConvertor> tc, const std::atom
 {
     auto startGen = std::chrono::system_clock::now();
     const static int chunkRatio = 1000;
-    const int innerChunkRation = chunkRatio/10 + 1;
+    const int innerChunkRation = chunkRatio/10;
 
 
     std::random_device rd;
@@ -61,7 +61,8 @@ void QFileBuffer::generateFile(QSharedPointer<TimeConvertor> tc, const std::atom
         msecs curChunkKey(vec[0].start);
         QMap <msecs, int> curChunkMap;
         for (int j = 0; j < vec.size(); j++, k++){
-            if (j%innerChunkRation) curChunkMap.insert(msecs(vec[j].start), k);
+            if (j%innerChunkRation == 0)
+                curChunkMap.insert(msecs(vec[j].start), k);
             ds << vec[j].start << vec[j].end << vec[j].name;
             emit sendPrg(100*(k/static_cast<double>(count)));
         }
@@ -91,33 +92,41 @@ void QFileBuffer::generateFileB(QSharedPointer<TimeConvertor> tc, const std::ato
 QVector<MultiBookmark> QFileBuffer::getBookmarks(msecs start, msecs end, QSharedPointer<TimeConvertor> tc)
 {
     auto closest = getLowestKey(start, navMap.keys());
-    if (!closest){qDebug() << "no big key"; return {};};
+    if (!closest){
+       // qDebug() << "no big key";
+        return {};};
     const auto& chunkMap = navMap.value(closest.value());
     auto closestInner = getLowestKey(start, chunkMap.keys());
-    if (!closestInner){qDebug() << "no big key"; return {};};
+    if (!closestInner){
+        //qDebug() << "no little key";
+        return {};
+    };
     int row = chunkMap.value(closestInner.value());
     file.seek(row);
+   // QVector<Bookmark> singleBkVec;
+   // QVector<MultiBookmark> multiBkVec;
     QVector<MultiBookmark> mbVec;
     MultiBookmark* lastMbk;
-    int prevStart, prevEnd; QString prevName;
+    //int prevStart, prevEnd; QString prevName;
     int curStart, curEnd; QString name;
     ds >> curStart >> curEnd >> name;
     int endCount = end.count();
-    MultiBookmark mbk(prevStart, prevEnd);
+    MultiBookmark mbk(curStart, curEnd);
     const static int toSkip = sizeof (int) + 64 * sizeof (char);
     int maxMbkWidth = tc->getUnitingSpread().count();
     int curMbkEnd = mbk.start + maxMbkWidth;
     while(true){
-        ds >> curStart;
-        if (curStart > curEnd) break;
+        ds >> curStart >> curEnd >> name;
+        if (curStart > end.count() || ds.atEnd()){
+            mbVec.append(mbk);
+            break;
+        }
         if (curStart <= curMbkEnd){
-            ds.skipRawData(toSkip);
             mbk.count++;
         }
         else{
 //            if (mbk.count == 1){
                 mbVec.append(mbk);
-                ds >> curEnd >> name;
                 mbk.reset(curStart, curEnd, name);
                 curMbkEnd = curStart + maxMbkWidth;
 //            }
@@ -129,7 +138,62 @@ QVector<MultiBookmark> QFileBuffer::getBookmarks(msecs start, msecs end, QShared
 //            }
         }
     }
-    mbVec.append(mbk);
+
     return mbVec;
 
 }
+
+QVector<std::variant<Bookmark, MultiBookmark>> QFileBuffer::getBookmarksVar(msecs start, msecs end, QSharedPointer<TimeConvertor> tc)
+{
+    auto closest = getLowestKey(start, navMap.keys());
+    if (!closest){
+       // qDebug() << "no big key";
+        return {};};
+    const auto& chunkMap = navMap.value(closest.value());
+    auto closestInner = getLowestKey(start, chunkMap.keys());
+    if (!closestInner){
+        //qDebug() << "no little key";
+        return {};
+    };
+    int row = chunkMap.value(closestInner.value());
+    file.seek(row);
+   // QVector<Bookmark> singleBkVec;
+   // QVector<MultiBookmark> multiBkVec;
+    QVector<std::variant<Bookmark, MultiBookmark>> mbVec;
+    MultiBookmark* lastMbk;
+    //int prevStart, prevEnd; QString prevName;
+    int curStart, curEnd; QString name;
+    ds >> curStart >> curEnd >> name;
+    int endCount = end.count();
+    MultiBookmark mbk(curStart, curEnd);
+    const static int toSkip = sizeof (int) + 64 * sizeof (char);
+    int maxMbkWidth = tc->getUnitingSpread().count();
+    int curMbkEnd = mbk.start + maxMbkWidth;
+    while(true){
+        ds >> curStart >> curEnd >> name;
+        if (curStart > end.count() || ds.atEnd()){
+            mbVec.append(mbk.detachVar());
+            break;
+        }
+        if (curStart <= curMbkEnd){
+            mbk.count++;
+        }
+        else{
+//            if (mbk.count == 1){
+                mbVec.append(mbk.detachVar());
+                mbk.reset(curStart, curEnd, name);
+                curMbkEnd = curStart + maxMbkWidth;
+//            }
+//            else{
+//                mbVec.append(mbk);
+//                ds >> curEnd >> name;
+//                mbk.reset(curStart, curEnd, name);
+//                curMbkEnd = curStart + maxMbkWidth;
+//            }
+        }
+    }
+
+    return mbVec;
+
+}
+

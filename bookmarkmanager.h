@@ -7,8 +7,11 @@
 #include <QDebug>
 #include <QObject>
 #include "qfilebuffer.h"
+#include <atomic>
+#include <QMutex>
 
 using BookmarkVec = QVector<MultiBookmark>;
+using ShpBookmarkVec = std::shared_ptr<BookmarkVec>;
 class BookmarkManager: public QObject
 {
 Q_OBJECT
@@ -17,8 +20,8 @@ public:
 
     BookmarkManager(QSharedPointer<TimeConvertor>& convertor): QObject(nullptr),
 
-        bookmarksToDisplay(&bookmarksBuffer1),
-        bookmarksToCompute(&bookmarksBuffer2),
+//        bookmarksToDisplay(&bookmarksBuffer1),
+//        bookmarksToCompute(&bookmarksBuffer2),
         m_timeconvertor(convertor)
     {
         //sqlworker = new SqliteWorker(isRunning);
@@ -27,7 +30,7 @@ public:
         isRunning.store(false);
     }
     Q_INVOKABLE bool generateBookmarks(int count);
-    void start(){
+    Q_INVOKABLE void start(){
         isRunning = true;
         while (isRunning){
             QThread::sleep(0);
@@ -36,42 +39,59 @@ public:
          //   collectBookmarksForDisplay();
             collect();
          //   collectBookmarksForDisplayList();
-            swapIfNeeded();
+          //  swapIfNeeded();
         }
     }
     std::atomic_bool toSwap{false};
     std::vector<ShpBookmark> bookmarks;
-    BookmarkVec* bookmarksToDisplay;
-    BookmarkVec* bookmarksToCompute;
+   // ShpBookmarkVec bookmarksToDisplay;
+   // ShpBookmarkVec bookmarksToCompute;
 
 
    // SqliteWorker *getSqlworker() const;
 
-    QFileBuffer& getBuf();
+    QFileBuffer& getFileWorker();
 
+   // std::atomic<BookmarkVec*> readyBuffer = &bookmarksBuffer[1];
+   BookmarkVec* displayBuffer = &bookmarksBuffer[2];
+    std::atomic_bool displayBufIsBusy{false};
+    std::atomic_bool stale{false};
+    QMutex mutex;
 private:
     QSharedPointer<TimeConvertor> m_timeconvertor;
-    BookmarkVec bookmarksBuffer1;
-    BookmarkVec bookmarksBuffer2;
-
+    BookmarkVec bookmarksBuffer[3];
+    BookmarkVec* computingBuffer = &bookmarksBuffer[0];
     std::vector<Bookmark> testList;
 
     QVector<QSharedPointer<MultiBookmark>> mVec;
 
    // SqliteWorker* sqlworker;
-    QFileBuffer buf;
+    QFileBuffer m_fileworker;
 
     int curRulerWidth{0};
     void collect(){
-        qDebug() << "recollect";
+       // qDebug() << "recollect";
         auto startCollecting = std::chrono::system_clock::now();
         msecs spread = m_timeconvertor->getUnitingSpread();
         int startCurMbk = 0;
         int startNextMbk = 0;
         int endCurMbk = spread.count() + startCurMbk;
-        *bookmarksToCompute = buf.getBookmarks(m_timeconvertor->left, m_timeconvertor->right, m_timeconvertor);
+
+        auto&& vec =  m_fileworker.getBookmarks(m_timeconvertor->left, m_timeconvertor->right, m_timeconvertor);
+        *computingBuffer = vec;
+        //while(displayBufIsBusy.exchange(true));
+        mutex.lock();
+       // qDebug() << "collect LOCK";
+        auto* temp = displayBuffer;
+        displayBuffer = computingBuffer;
+        computingBuffer = temp;
+        mutex.unlock();
+        displayBufIsBusy.store(false);
+       // qDebug() << "collect UNLOCK";
+        computingBuffer->clear();
+       // stale.store(false);
         auto timeToCollect = std::chrono::system_clock::now() - startCollecting;
-        qDebug() << "timeToReCollectVec" << timeToCollect.count();
+      //  qDebug() << "timeToReCollectVec" << timeToCollect.count();
     }
     void recollect(){
      /*    qDebug() << "recollect";
@@ -190,12 +210,9 @@ private:
 */
     void swapIfNeeded(){
         if (!toSwap) return;
-        auto temp = bookmarksToCompute;
-        bookmarksToCompute = bookmarksToDisplay;
-        bookmarksToDisplay = temp;
-//        auto&& temp = bookmarksToDisplay.fetchAndStoreOrdered(bookmarksToCompute.loadRelaxed());
-//        bookmarksToCompute.fetchAndStoreOrdered(temp);
-        toSwap.store(false, std::memory_order_seq_cst);
+      //  auto temp = std::atomic_load(&bookmarksToCompute);
+
+        //while (!std::atomic_compare_exchange_weak(bookmarksToDisplay, bookmarksToCompute, bookmarksToDisplay));
     }
     void split(QVector<MultiBookmark>& vec, int pos, MultiBookmark& m, int oldNew, int endNew){
         QVector<MultiBookmark> splitted;
