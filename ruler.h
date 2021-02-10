@@ -113,7 +113,7 @@ private:
 
         int time{0};
 
-        float i = m_ri.leftMargin;
+        float i = m_ri.leftMargin + m_ri.dragOffset();
         for (; time < 10; time++){
             if (i > m_ri.leftMargin && i < m_ri.rulerWidth){
                 p->drawLine({curPos.rx() + i, curPos.ry()}, QPointF{curPos.rx() + i, curPos.ry() + linesHeight});
@@ -136,34 +136,45 @@ private:
     virtual void wheelEvent(QGraphicsSceneWheelEvent *event) override{
         int delta = event->delta();
         static const float wheelScrollRatio = 0.0005;
-        float targetZoomRatio{m_ri._zoomRatio};
-        targetZoomRatio += delta * wheelScrollRatio;
-        if (targetZoomRatio < 1) targetZoomRatio = 1;
-        else if (targetZoomRatio > 2) targetZoomRatio = 2;
-
-        static const int defaultDurationAni = 300;
-        static int durationAni = defaultDurationAni;
+        static const int targetCoef = 1;
+        static int curTargetCoef = targetCoef;
 
         if (curZoomAni){
             if (curZoomAni->state() == QPropertyAnimation::State::Running){
-                durationAni *= 1.3;
+                curTargetCoef /= 1.5;
             }
             else{
-                durationAni = defaultDurationAni;
+                curTargetCoef = targetCoef;
             }
             curZoomAni->stop();
             delete curZoomAni;
         }
         if (curOffsetAni){
             if (curOffsetAni->state() == QPropertyAnimation::State::Running){
-                durationAni *= 1.3;
+                curTargetCoef /= 1.5;
             }
             else{
-                durationAni = defaultDurationAni;
+                curTargetCoef = targetCoef;
             }
             curOffsetAni->stop();
             delete curOffsetAni;
         }
+
+
+
+        float targetZoomRatio{m_ri._zoomRatio};
+        targetZoomRatio += delta * wheelScrollRatio; //* curTargetCoef;
+        if (targetZoomRatio < 1) targetZoomRatio = 1;
+        else if (targetZoomRatio > 2) targetZoomRatio = 2;
+
+        float posRatio = curMouseXPos/static_cast<float>(m_ri.rulerWidth);
+
+        int targetOffset = (posRatio * m_ri.rulerWidth - m_ri.rulerWidth) * (targetZoomRatio - 1); //* curTargetCoef;
+
+        qDebug() << "target offset" << posRatio << targetOffset;
+
+
+
 
 
 
@@ -173,6 +184,12 @@ private:
         zoomAni->setEndValue(targetZoomRatio);
         zoomAni->start();
 
+
+        QPropertyAnimation *offsetAni = new QPropertyAnimation(&m_ri, "dragOffset");
+        offsetAni->setDuration(300);
+        offsetAni->setStartValue(m_ri._dragOffset);
+        offsetAni->setEndValue(targetOffset);
+        offsetAni->start();
        // int targetOffset = {m_ri}
 
         //m_ri.zoomRatio = targetZoomRatio;
