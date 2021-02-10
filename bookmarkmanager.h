@@ -214,13 +214,13 @@ private:
 
         //while (!std::atomic_compare_exchange_weak(bookmarksToDisplay, bookmarksToCompute, bookmarksToDisplay));
     }
-    void split(QVector<MultiBookmark>& vec, int pos, MultiBookmark& m, int oldNew, int endNew){
-        QVector<MultiBookmark> splitted;
-        //while
-    }
-    void merge(QVector<MultiBookmark>& vec, int pos, MultiBookmark& m, int endNew){
+//    void split(QVector<MultiBookmark>& vec, int pos, MultiBookmark& m, int oldNew, int endNew){
+//        QVector<MultiBookmark> splitted;
+//        //while
+//    }
+//    void merge(QVector<MultiBookmark>& vec, int pos, MultiBookmark& m, int endNew){
 
-    }
+//    }
 
 
 };

@@ -127,12 +127,12 @@ public:
         m_scene.setBackgroundBrush(QBrush(QColor("#808080")));
       //  m_scene.setB
         initElements();
-
-        auto t = new QTimer();
-        connect(t, &QTimer::timeout, this, [=](){
-            scene()->advance();
-        });
-        t->start(50);
+        renderTimer();
+//        auto t = new QTimer();
+//        connect(t, &QTimer::timeout, this, [=](){
+//            scene()->advance();
+//        });
+//        t->start(50);
 
     }
     ~RuleView(){}
@@ -147,8 +147,18 @@ private:
     //
     QPointer<BookmarkManager> m_bkmngr;
     QSharedPointer<TimeConvertor> m_timeconv;
-    ViewPositions viewPositions;
+
+    //items
+    Ruler* m_ruler;
+    BookmarksLine* m_line;
+
+    //operating structs
+
+    RenderInfo renderInfo;
     Palette plt;
+
+
+
     //pens
     QPen blackPen{Qt::black, 1};
     QPen boldBlackPen{Qt::black, 3};
@@ -162,24 +172,19 @@ private:
     QPointF get12hLineDown(){
         return {this->width()/2., static_cast<double>(lineHeight)};
     }
-    void initElements(){
-        auto t = new TestItem();
+    void initElements();
 
-        m_scene.addItem(t);
-     //   setSceneRect();
-    ///1     t->setPos(111,111);
-        auto r = new Ruler(this->plt, this->viewPositions, m_timeconv);
-        auto s = new BookmarksLine(this->plt, m_bkmngr, viewPositions, m_timeconv );
-        r->setPos(0,0);
-        m_scene.addItem(r);
-        m_scene.addItem(s);
-        this->setAlignment(Qt::AlignLeft | Qt::AlignTop);
-        this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        this->setMinimumHeight(100);
-        this->setMinimumWidth(100);
-
-       // auto r = new Book
-
+    void renderTimer(){
+        auto cur = std::chrono::system_clock::now();
+        auto sinceLastRender = cur - renderInfo.lastRender;
+        if (sinceLastRender > msecs(renderInfo.renderStep)) sinceLastRender = msecs(0);
+        auto&& nextRender = renderInfo.renderStep - sinceLastRender;
+        renderInfo.lastRender = cur;
+        QTimer::singleShot(std::chrono::duration_cast<msecs>(nextRender), this, [=](){
+            m_ruler->update();
+            m_line->update();
+            renderTimer();
+        });
     }
 private:
     void resizeEvent(QResizeEvent *event) override{
