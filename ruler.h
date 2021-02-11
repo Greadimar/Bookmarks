@@ -10,7 +10,7 @@
 #include <QGraphicsView>
 #include <QDebug>
 #include <QFontMetrics>
-#include "timeconvertor.h"
+#include "timeaxis.h"
 #include "bookmarkmanager.h"
 #include <QPointer>
 #include <QGraphicsSceneWheelEvent>
@@ -28,15 +28,18 @@ struct Palette{
     QColor multiBookmarksBackground{"#64BB6A"};
 };
 
+
+
+
 class RenderInfo: public QObject{
     Q_OBJECT
 signals:
     void zoomRatioChanged();
-    void dragOffsetChanged();
+    void dragOffsetahanged();
 public:
     //Q_PROPERTY(float zoomRatio READ zoomR);
     Q_PROPERTY(float zoomRatio READ zoomRatio WRITE setZoomRatio NOTIFY zoomRatioChanged)
-    Q_PROPERTY(int dragOffset READ dragOffset WRITE setDragOffset NOTIFY dragOffsetChanged);
+    Q_PROPERTY(int dragOffset READ dragOffset WRITE setDragOffset NOTIFY dragOffsetahanged);
     int rulerTopY{0};
     int rulerBottomY{100};
     const int bookmarksTopMargin = 10;
@@ -60,7 +63,7 @@ public:
 
 class Ruler: public QGraphicsObject{
 public:
-    Ruler(const Palette& plt, RenderInfo& ri, const QSharedPointer<TimeConvertor>& c): m_plt(plt), m_ri(ri), m_tc(c){
+    Ruler(const Palette& plt, RenderInfo& ri, const QSharedPointer<TimeAxis>& c): m_plt(plt), m_ri(ri), m_ta(c){
         this->font.setStyleStrategy(QFont::ForceOutline);
         QFontMetrics fm(font);
 
@@ -75,7 +78,9 @@ public:
 private:
     const Palette& m_plt;
     RenderInfo& m_ri;
-    QSharedPointer<TimeConvertor> m_tc;
+
+
+    QSharedPointer<TimeAxis> m_ta;
     QFont font{"Times", 10};
 
     QPointer<QPropertyAnimation> curZoomAni;
@@ -99,8 +104,21 @@ private:
         QPointF curPos = scenePos();
         int viewWidth = scene()->views().first()->width();
         m_ri.rulerWidth = viewWidth - m_ri.leftMargin - m_ri.rightMargin;
-        m_tc->rulerWidth.store(m_ri.rulerWidth); //std::rel_ack?
-        m_tc->hourWidthInPx = (m_ri.rulerWidth/(-23 * m_ri._zoomRatio + 47)); //y = 47 - 23x
+        m_ta->rulerWidth.store(m_ri.rulerWidth); //std::rel_ack?
+       int updHourWidthInPx =  (m_ri.rulerWidth/(-23 * m_ri._zoomRatio + 47)); //hoursSeen = 47 - 23zoom        zoom 2 = 1h, zoom 1 = 24h
+
+//        m_ta->updateHourWidthInPx();
+
+        //calc 24h full width center
+        float daycenterpos =  (m_ri.rulerWidth * updHourWidthInPx / m_ta->hourWidthInPx) / 2;
+        m_ta->hourWidthInPx = updHourWidthInPx;
+        //calc visual center
+        float visuallcenterpos =
+                (m_ri.rulerWidth + m_ri.leftMargin) / 2.;
+        int offset = visuallcenterpos - daycenterpos;
+
+
+
         //drawing ruler
         p->setPen(m_plt.rulerBackground);
         p->drawRect(0, 0, viewWidth,  hourLabelsBottomPos);
@@ -111,22 +129,46 @@ private:
         p->setPen(QPen(m_plt.labels, 2));
         p->setFont(font);
 
-        int time{0};
+        msecs time{0};
 
-        float i = m_ri.leftMargin + m_ri.dragOffset();
-        for (; time < 10; time++){
-            if (i > m_ri.leftMargin && i < m_ri.rulerWidth){
-                p->drawLine({curPos.rx() + i, curPos.ry()}, QPointF{curPos.rx() + i, curPos.ry() + linesHeight});
-                p->drawText(QPointF{i - hour1xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(time));
+        msecs curMin{m_ta->min.load(std::memory_order_relaxed)};
+        msecs curMax{m_ta->max.load(std::memory_order_relaxed)};
+
+        float pxStart = curPos.rx() + m_ri.leftMargin + offset;
+        //float i = m_ri.leftMargin + m_ri.dragOffset();
+
+//                for (; time < std::chrono::hours(10); time += m_ta->step){
+//                    if (time > curMin && time < curMax){
+//                        float px = pxStart + m_ta->getPxPosFromMsec(time);
+//                        p->drawLine({px, curPos.ry()}, QPointF{px, curPos.ry() + linesHeight});
+//                        p->drawText(QPointF{px - hour1xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(
+//                                        std::chrono::duration_cast<std::chrono::hours>(time).count()));
+//                    }
+//                }
+//                for (; time <= std::chrono::hours(24); time += m_ta->step){
+//                    if (time > curMin && time < curMax){
+//                        float px = pxStart + m_ta->getPxPosFromMsec(time);
+//                        p->drawLine({px, curPos.ry()}, QPointF{px, curPos.ry() + linesHeight});
+//                        p->drawText(QPointF{px - hour2xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(
+//                                        std::chrono::duration_cast<std::chrono::hours>(time).count()));
+//                    }
+//                }
+
+        for (; time < std::chrono::hours(10); time += m_ta->step){
+            if (time > curMin && time < curMax){
+                float px = pxStart + m_ta->getPxPosFromMsec(time);
+                p->drawLine({px, curPos.ry()}, QPointF{px, curPos.ry() + linesHeight});
+                p->drawText(QPointF{px - hour1xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(
+                                std::chrono::duration_cast<std::chrono::hours>(time).count()));
             }
-            i += m_tc->hourWidthInPx;
         }
-        for (; time <= 24; time++){
-            if (i > m_ri.leftMargin && i < m_ri.rulerWidth){
-                p->drawLine({curPos.rx() + i, curPos.ry()}, QPointF{curPos.rx() + i, curPos.ry() + linesHeight});
-                p->drawText(QPointF{i - hour2xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(time));
+        for (; time <= std::chrono::hours(24); time += m_ta->step){
+            if (time > curMin && time < curMax){
+                float px = pxStart + m_ta->getPxPosFromMsec(time);
+                p->drawLine({px, curPos.ry()}, QPointF{px, curPos.ry() + linesHeight});
+                p->drawText(QPointF{px - hour2xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(
+                                std::chrono::duration_cast<std::chrono::hours>(time).count()));
             }
-            i += m_tc->hourWidthInPx;
         }
         // p->restore();
 
@@ -136,25 +178,25 @@ private:
     virtual void wheelEvent(QGraphicsSceneWheelEvent *event) override{
         int delta = event->delta();
         static const float wheelScrollRatio = 0.0005;
-        static const int targetCoef = 1;
-        static int curTargetCoef = targetCoef;
+        static const int targetaoef = 1;
+        static int curTargetaoef = targetaoef;
 
         if (curZoomAni){
             if (curZoomAni->state() == QPropertyAnimation::State::Running){
-                curTargetCoef /= 1.5;
+                curTargetaoef /= 1.5;
             }
             else{
-                curTargetCoef = targetCoef;
+                curTargetaoef = targetaoef;
             }
             curZoomAni->stop();
             delete curZoomAni;
         }
         if (curOffsetAni){
             if (curOffsetAni->state() == QPropertyAnimation::State::Running){
-                curTargetCoef /= 1.5;
+                curTargetaoef /= 1.5;
             }
             else{
-                curTargetCoef = targetCoef;
+                curTargetaoef = targetaoef;
             }
             curOffsetAni->stop();
             delete curOffsetAni;
@@ -163,34 +205,66 @@ private:
 
 
         float targetZoomRatio{m_ri._zoomRatio};
-        targetZoomRatio += delta * wheelScrollRatio; //* curTargetCoef;
+        targetZoomRatio += delta * wheelScrollRatio; //* curTargetaoef;
         if (targetZoomRatio < 1) targetZoomRatio = 1;
         else if (targetZoomRatio > 2) targetZoomRatio = 2;
 
         float posRatio = curMouseXPos/static_cast<float>(m_ri.rulerWidth);
 
-        int targetOffset = (posRatio * m_ri.rulerWidth - m_ri.rulerWidth) * (targetZoomRatio - 1); //* curTargetCoef;
+        // int targetOffset = (curMouseXPos - m_ri.rulerWidth) * (targetZoomRatio - 1); //* curTargetaoef;
 
+
+        int wx = m_ri.rulerWidth / 2;
+        float some{};
+
+        int rulerWMax = m_ri.rulerWidth * (targetZoomRatio - 1);
+        int offsetMax = -2 * rulerWMax + rulerWMax/24.;
+        int targetOffset = m_ri.dragOffset();// posRatio * offsetMax;
+        //if (posRatio > 0.5)
+        targetOffset = (posRatio) * offsetMax;
         qDebug() << "target offset" << posRatio << targetOffset;
 
 
+        auto max{m_ta->getMax()};
+        auto min{m_ta->getMin()};
+        int wX = m_ta->getDuration().count();
+        int curX = m_ta->getMsecFromPxPosition(curMouseXPos).count();
 
+        auto precMinX = (curX - min) / static_cast<float>(wX);
+        auto precMaxX = (max - curX) / static_cast<float>(wX);
 
+        auto targetMin = (curX - wX * 1.05*precMinX);
+        auto targetMax = (curX + wx * 1.05*precMaxX);
+        qDebug() << "cur m m" << min << max;
+        qDebug() << "dur" << wX;
+        qDebug() << "cur mouse pos in msecs" <<curMouseXPos << curX;
+        qDebug() << "target m m" << targetMin << targetMax;
 
+       m_ta->setMax(targetMax);
+        m_ta->setMin(targetMin);
+
+     //   QPropertyAnimation *minAni = new QPropertyAnimation(m_ta.data(), "min");
+
+//        QPropertyAnimation *zoomAni = new QPropertyAnimation(&m_ri, "zoomRatio");
+//        minAni->setDuration(300);
+//        minAni->setStartValue(m_ta->getMin());
+//        minAni->setEndValue(targetMin);
+//        minAni->start();
+
+//        QPropertyAnimation *maxAni = new QPropertyAnimation(m_ta.data(), "max");
 
         QPropertyAnimation *zoomAni = new QPropertyAnimation(&m_ri, "zoomRatio");
         zoomAni->setDuration(300);
-        zoomAni->setStartValue(m_ri._zoomRatio);
+        zoomAni->setStartValue(m_ri.zoomRatio());
         zoomAni->setEndValue(targetZoomRatio);
         zoomAni->start();
 
-
-        QPropertyAnimation *offsetAni = new QPropertyAnimation(&m_ri, "dragOffset");
-        offsetAni->setDuration(300);
-        offsetAni->setStartValue(m_ri._dragOffset);
-        offsetAni->setEndValue(targetOffset);
-        offsetAni->start();
-       // int targetOffset = {m_ri}
+//        QPropertyAnimation *offsetAni = new QPropertyAnimation(&m_ri, "dragOffset");
+//        offsetAni->setDuration(300);
+//        offsetAni->setStartValue(m_ri._dragOffset);
+//        offsetAni->setEndValue(targetOffset);
+//        offsetAni->start();
+        // int targetOffset = {m_ri}
 
         //m_ri.zoomRatio = targetZoomRatio;
         this->update();
@@ -207,14 +281,14 @@ private:
 
         curMouseXPos = mapToScene(event->pos()).rx();
         m_ri._dragOffset = mouseXPosOnPress - curMouseXPos;
-        qDebug() << "mousePos" << curMouseXPos;
+        //    qDebug() << "mousePos" << curMouseXPos;
         // QGraphicsItem::mouseMoveEvent(event);
     }
     void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override{
 
         curMouseXPos = mapToScene(event->pos()).rx();
         //m_ri.dragOffset = mouseXPosOnPress - curMouseXPos;
-        qDebug() << "mousePos" << curMouseXPos;
+        //    qDebug() << "mousePos" << curMouseXPos;
         // QGraphicsItem::mouseMoveEvent(event);
     }
     //    void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override{
@@ -224,8 +298,8 @@ private:
 
 class BookmarksLine: public QGraphicsItem{
 public:
-    BookmarksLine(const Palette& plt, QPointer<BookmarkManager> bmkMngr, RenderInfo& ri, const QSharedPointer<TimeConvertor>& c):
-        m_plt(plt), m_bmkMngr(bmkMngr), m_ri(ri), m_tc(c){
+    BookmarksLine(const Palette& plt, QPointer<BookmarkManager> bmkMngr, RenderInfo& ri, const QSharedPointer<TimeAxis>& t):
+        m_plt(plt), m_bmkMngr(bmkMngr), m_ri(ri), m_ta(t){
         this->font.setStyleStrategy(QFont::ForceOutline);
         QFontMetrics fm(font);
         ri.bookmarksBottomY = ri.bookmarksTopY + ri.bookmarksHeight;
@@ -234,7 +308,7 @@ private:
     const Palette& m_plt;
     QPointer<BookmarkManager> m_bmkMngr;
     const RenderInfo& m_ri;
-    QSharedPointer<TimeConvertor> m_tc;
+    QSharedPointer<TimeAxis> m_ta;
     QFont font{"Times", 10};
     const int multiBoookmarkWidth = 100;
     const int borderWidth = 2;
@@ -285,8 +359,8 @@ private:
 
     void paintBk(const Bookmark& b, QPainter* p, const QStyleOptionGraphicsItem *st){
         p->setPen(QPen(m_plt.singleBookmarksBorders, 2));
-        QRectF bkRect(m_tc->getPxPosFromMsec(b.start), m_ri.bookmarksTopY,
-                      m_tc->getPxPosFromMsec(b.end), m_ri.bookmarksBottomY);
+        QRectF bkRect(m_ta->getPxPosFromMsec(b.start), m_ri.bookmarksTopY,
+                      m_ta->getPxPosFromMsec(b.end), m_ri.bookmarksBottomY);
         QPainterPath pp;
         pp.addRoundedRect(bkRect, 5, 5);
         p->fillPath(pp, QBrush(m_plt.singleBookmarksBackground));
@@ -299,7 +373,7 @@ private:
     }
     void paintMbk(const MultiBookmark& mb, QPainter* p, const QStyleOptionGraphicsItem *st){
         p->setPen(QPen(m_plt.multiBookmarksBorders, 2));
-        QPoint posTopLeft{m_tc->getPxPosFromMsec(mb.start), m_ri.bookmarksTopY};
+        QPoint posTopLeft{m_ta->getPxPosFromMsec(mb.start), m_ri.bookmarksTopY};
 
         int w = posTopLeft.rx() + multiBoookmarkWidth - borderWidth;
         int h = m_ri.bookmarksHeight;

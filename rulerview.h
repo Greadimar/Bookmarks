@@ -11,7 +11,7 @@
 #include <QTimer>
 #include "ruler.h"
 #include "bookmarkmanager.h"
-#include "timeconvertor.h"
+#include "timeaxis.h"
 #include <QPointer>
 namespace Ui {
 class SceneWt;
@@ -113,8 +113,8 @@ class RuleView : public QGraphicsView
     Q_OBJECT
 
 public:
-    explicit RuleView(QPointer<BookmarkManager> mngr, QSharedPointer<TimeConvertor> timec,
-                     QWidget *parent = nullptr): m_bkmngr(mngr), m_timeconv(timec){
+    explicit RuleView(QPointer<BookmarkManager> mngr, QSharedPointer<TimeAxis> timea,
+                     QWidget *parent = nullptr): m_bkmngr(mngr), m_ta(timea){
         setRenderHints(QPainter::SmoothPixmapTransform| QPainter::TextAntialiasing);
        // setCacheMode(QGraphicsView::CacheNone); // change ??
         this->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
@@ -146,7 +146,7 @@ private:
     QPixmap *pixmap;
     //
     QPointer<BookmarkManager> m_bkmngr;
-    QSharedPointer<TimeConvertor> m_timeconv;
+    QSharedPointer<TimeAxis> m_ta;
 
     //items
     Ruler* m_ruler;

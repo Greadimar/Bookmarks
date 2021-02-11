@@ -13,7 +13,7 @@ QFileBuffer::QFileBuffer(): file(QDir::currentPath()+"b.dat"),  ds(&file)
     fileB.resize(0);
 }
 
-void QFileBuffer::generateFile(QSharedPointer<TimeConvertor> tc, const std::atomic_bool& isRunning, int count)
+void QFileBuffer::generateFile(QSharedPointer<TimeAxis> tc, const std::atomic_bool& isRunning, int count)
 {
     auto startGen = std::chrono::system_clock::now();
     const static int chunkRatio = 1000;
@@ -22,9 +22,9 @@ void QFileBuffer::generateFile(QSharedPointer<TimeConvertor> tc, const std::atom
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> startDis(0, tc->msecsInDay.count());
+    std::uniform_int_distribution<int> startDis(0, TimeInfo::msecsInDay.count());
     //   std::uniform_int_distribution<int> durationDis(0, tc->msecsIn3hours.count());
-    const int msecsInGenerateChunk = tc->msecsInDay.count() / chunkRatio;
+    const int msecsInGenerateChunk = TimeInfo::msecsInDay.count() / chunkRatio;
 
     int it = 0;
     const int chunkToGenerate = count / chunkRatio;
@@ -44,7 +44,7 @@ void QFileBuffer::generateFile(QSharedPointer<TimeConvertor> tc, const std::atom
 
         int curStartMsecs = chunksIt * msecsInGenerateChunk;
         int curEndMsecs = curStartMsecs + msecsInGenerateChunk;
-        if (curEndMsecs > tc->msecsInDay.count()) curEndMsecs = tc->msecsInDay.count();
+        if (curEndMsecs > TimeInfo::msecsInDay.count()) curEndMsecs = TimeInfo::msecsInDay.count();
         std::uniform_int_distribution<int> startDis(curStartMsecs, curEndMsecs-1);
 
         for (; it <  curChunkEnd; it++){
@@ -73,7 +73,7 @@ void QFileBuffer::generateFile(QSharedPointer<TimeConvertor> tc, const std::atom
     emit sendPrg(100);
 }
 
-void QFileBuffer::generateFileB(QSharedPointer<TimeConvertor> tc, const std::atomic_bool &isRunning, int count)
+void QFileBuffer::generateFileB(QSharedPointer<TimeAxis> tc, const std::atomic_bool &isRunning, int count)
 {
 //    file.seek(0);
 //    int curStart{0}; int curEnd{}; char name[namelength];
@@ -89,7 +89,7 @@ void QFileBuffer::generateFileB(QSharedPointer<TimeConvertor> tc, const std::ato
 //    }
 }
 
-QVector<MultiBookmark> QFileBuffer::getBookmarks(msecs start, msecs end, QSharedPointer<TimeConvertor> tc)
+QVector<MultiBookmark> QFileBuffer::getBookmarks(msecs start, msecs end, QSharedPointer<TimeAxis> ta)
 {
     auto closest = getLowestKey(start, navMap.keys());
     if (!closest){
@@ -113,7 +113,7 @@ QVector<MultiBookmark> QFileBuffer::getBookmarks(msecs start, msecs end, QShared
     int endCount = end.count();
     MultiBookmark mbk(curStart, curEnd);
     const static int toSkip = sizeof (int) + 64 * sizeof (char);
-    int maxMbkWidth = tc->getUnitingSpread().count();
+    int maxMbkWidth = ta->getUnitingSpread().count();
     int curMbkEnd = mbk.start + maxMbkWidth;
     while(true){
         ds >> curStart >> curEnd >> name;
@@ -143,7 +143,7 @@ QVector<MultiBookmark> QFileBuffer::getBookmarks(msecs start, msecs end, QShared
 
 }
 
-QVector<std::variant<Bookmark, MultiBookmark>> QFileBuffer::getBookmarksVar(msecs start, msecs end, QSharedPointer<TimeConvertor> tc)
+QVector<std::variant<Bookmark, MultiBookmark>> QFileBuffer::getBookmarksVar(msecs start, msecs end, QSharedPointer<TimeAxis> ta)
 {
     auto closest = getLowestKey(start, navMap.keys());
     if (!closest){
@@ -167,7 +167,7 @@ QVector<std::variant<Bookmark, MultiBookmark>> QFileBuffer::getBookmarksVar(msec
     int endCount = end.count();
     MultiBookmark mbk(curStart, curEnd);
     const static int toSkip = sizeof (int) + 64 * sizeof (char);
-    int maxMbkWidth = tc->getUnitingSpread().count();
+    int maxMbkWidth = ta->getUnitingSpread().count();
     int curMbkEnd = mbk.start + maxMbkWidth;
     while(true){
         ds >> curStart >> curEnd >> name;

@@ -24,10 +24,11 @@ SOURCES += \
     qfilebuffer.cpp \
     ruler.cpp \
     rulerview.cpp \
+    timeaxis.cpp
    # sqliteworker.cpp \
-    timeconvertor.cpp
 
 HEADERS += \
+    axisinfo.h \
     bookmark.h \
     bookmarkmanager.h \
     common.h \
@@ -37,7 +38,7 @@ HEADERS += \
     ruler.h \
     rulerview.h \
     sqliteworker.h \
-    timeconvertor.h
+    timeaxis.h
 
 FORMS += \
     mainwindow.ui

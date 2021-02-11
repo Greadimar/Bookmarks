@@ -1,7 +1,7 @@
 #ifndef BOOKMARKMANAGER_H
 #define BOOKMARKMANAGER_H
 #include "bookmark.h"
-#include "timeconvertor.h"
+#include "timeaxis.h"
 //#include "sqliteworker.h"
 #include <QThread>
 #include <QDebug>
@@ -18,11 +18,11 @@ Q_OBJECT
 public:
     std::atomic_bool isRunning{false};
 
-    BookmarkManager(QSharedPointer<TimeConvertor>& convertor): QObject(nullptr),
+    BookmarkManager(QSharedPointer<TimeAxis>& timeAxis): QObject(nullptr),
 
 //        bookmarksToDisplay(&bookmarksBuffer1),
 //        bookmarksToCompute(&bookmarksBuffer2),
-        m_timeconvertor(convertor)
+        m_ta(timeAxis)
     {
         //sqlworker = new SqliteWorker(isRunning);
     };
@@ -34,8 +34,8 @@ public:
         isRunning = true;
         while (isRunning){
             QThread::sleep(0);
-           // if (curRulerWidth == m_timeconvertor.rulerWidth.load(std::memory_order_relaxed)) continue;)
-            curRulerWidth = m_timeconvertor->rulerWidth.load(std::memory_order_relaxed);
+           // if (curRulerWidth == m_ta.rulerWidth.load(std::memory_order_relaxed)) continue;)
+           // curRulerWidth = m_ta->rulerWidth.load(std::memory_order_relaxed);
          //   collectBookmarksForDisplay();
             collect();
          //   collectBookmarksForDisplayList();
@@ -53,12 +53,12 @@ public:
     QFileBuffer& getFileWorker();
 
    // std::atomic<BookmarkVec*> readyBuffer = &bookmarksBuffer[1];
-   BookmarkVec* displayBuffer = &bookmarksBuffer[2];
+    BookmarkVec* displayBuffer = &bookmarksBuffer[2];
     std::atomic_bool displayBufIsBusy{false};
     std::atomic_bool stale{false};
     QMutex mutex;
 private:
-    QSharedPointer<TimeConvertor> m_timeconvertor;
+    QSharedPointer<TimeAxis> m_ta;
     BookmarkVec bookmarksBuffer[3];
     BookmarkVec* computingBuffer = &bookmarksBuffer[0];
     std::vector<Bookmark> testList;
@@ -68,16 +68,16 @@ private:
    // SqliteWorker* sqlworker;
     QFileBuffer m_fileworker;
 
-    int curRulerWidth{0};
+  //  int curRulerWidth{0};
     void collect(){
        // qDebug() << "recollect";
         auto startCollecting = std::chrono::system_clock::now();
-        msecs spread = m_timeconvertor->getUnitingSpread();
+        msecs spread = m_ta->getUnitingSpread();
         int startCurMbk = 0;
         int startNextMbk = 0;
         int endCurMbk = spread.count() + startCurMbk;
 
-        auto&& vec =  m_fileworker.getBookmarks(m_timeconvertor->left, m_timeconvertor->right, m_timeconvertor);
+        auto&& vec =  m_fileworker.getBookmarks(msecs(m_ta->min), msecs(m_ta->max), m_ta);
         *computingBuffer = vec;
         //while(displayBufIsBusy.exchange(true));
         mutex.lock();
@@ -98,13 +98,13 @@ private:
          auto startCollecting = std::chrono::system_clock::now();
 
          QMutableVectorIterator<MultiBookmark> it(*bookmarksToCompute);
-         msecs spread = m_timeconvertor->getUnitingSpread();
+         msecs spread = m_ta->getUnitingSpread();
          auto parse = [=](QMutableVectorIterator<MultiBookmark>& it){
              auto& v = mVec;
              auto b = it;
              auto& cur = it.value();
 
-             auto vec = buf.getBookmarks(msecs(it.value().start), msecs(it.value().end), m_timeconvertor);
+             auto vec = buf.getBookmarks(msecs(it.value().start), msecs(it.value().end), m_ta);
              int i = vec.size()-1;
              auto& curM = it.value();
              QVector<Bookmark> splittedDeq;
@@ -157,7 +157,7 @@ private:
 
     void collectBookmarksForDisplay(){
        /* auto startCollecting = std::chrono::system_clock::now();
-        msecs unitingSpread = m_timeconvertor->getUnitingSpread();
+        msecs unitingSpread = m_ta->getUnitingSpread();
         mVec.clear();
         mVec.reserve(bookmarks.size());
         for (size_t i = 0; i < bookmarks.size()-1; i++){
@@ -183,7 +183,7 @@ private:
         testList.clear();
        std::copy( bookmarks.begin(), bookmarks.end(), std::back_inserter( testList ) );
         auto startCollecting = std::chrono::system_clock::now();
-        msecs unitingSpread = m_timeconvertor->getUnitingSpread();
+        msecs unitingSpread = m_ta->getUnitingSpread();
 
         auto end = testList.end()--;
         for (auto b = testList.begin(); b != end; ++b){

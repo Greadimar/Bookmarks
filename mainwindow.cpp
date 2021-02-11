@@ -17,8 +17,8 @@ MainWindow::MainWindow(QWidget *parent)
 
 
 
-    timeconvertor = QSharedPointer<TimeConvertor>::create();
-    bookmarkMngr = new BookmarkManager(timeconvertor);
+    timeAxis = QSharedPointer<TimeAxis>::create();
+    bookmarkMngr = new BookmarkManager(timeAxis);
 
     //backend
     bookmngrThr = new QThread();
@@ -36,7 +36,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     //view
 
-    view = new RuleView(bookmarkMngr, timeconvertor);
+    view = new RuleView(bookmarkMngr, timeAxis);
 
     ui->lo->addWidget(view);
 

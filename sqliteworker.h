@@ -2,7 +2,7 @@
 #define SQLITEWORKER_H
 #include "sqlite3.h"
 #include "bookmark.h"
-#include "timeconvertor.h"
+#include "timeaxis.h"
 #include <optional>
 #include <QObject>
 
@@ -20,7 +20,7 @@ public:
     SqliteWorker(std::atomic_bool& isRunning): isRunning(isRunning){};
     void startDb();
     void closeDb();
-    void generateBookmarks(int count, const QSharedPointer<TimeConvertor> &tc);
+    void generateBookmarks(int count, const QSharedPointer<TimeAxis> &tc);
     QVector<Bookmark> getBookmarks(msecs start, msecs end);
 
 public slots:
