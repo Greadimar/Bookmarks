@@ -121,21 +121,28 @@ private:
         p->setFont(font);
 
         int time{0};
+        int min{m_ta->getMin()};
+        int max{m_ta->getMax()};
 
-        float i = m_ta->offsetInPx + m_ta->dragOffset + m_ta->dragOffsetCur;
-        for (; time < 10; time++){
-            if (i > m_ri.leftMargin && i < rulerWidth){
-                p->drawLine({curPos.rx() + i, curPos.ry()}, QPointF{curPos.rx() + i, curPos.ry() + linesHeight});
-                p->drawText(QPointF{i - hour1xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(time));
+
+
+        // int msecInPx{static_cast<int>(m_ta->getVisibleDuration().count()/ rulerWidth)};
+
+
+        //        float i = m_ta->offsetInPx + m_ta->dragOffset + m_ta->dragOffsetCur;
+        auto rx = curPos.rx();
+        for (; time < 10; time += m_ta->hourWidthInPx){
+            if (time >= min && time <= max){
+                p->drawLine({rx + time, curPos.ry()}, QPointF{rx + time, curPos.ry() + linesHeight});
+                p->drawText(QPointF{time - hour1xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(time));
             }
-            i += m_ta->hourWidthInPx;
+
         }
         for (; time <= 24; time++){
-            if (i > m_ri.leftMargin && i < rulerWidth){
-                p->drawLine({curPos.rx() + i, curPos.ry()}, QPointF{curPos.rx() + i, curPos.ry() + linesHeight});
-                p->drawText(QPointF{i - hour2xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(time));
+            if (time >= min && time <= max){
+                p->drawLine({rx + time, curPos.ry()}, QPointF{rx + time, curPos.ry() + linesHeight});
+                p->drawText(QPointF{time - hour1xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(time));
             }
-            i += m_ta->hourWidthInPx;
         }
         // p->restore();
 
@@ -146,48 +153,60 @@ private:
     virtual void wheelEvent(QGraphicsSceneWheelEvent *event) override{
         int delta = event->delta();
         static const float wheelScrollRatio = 0.0005;
-      //  static const int targetaoef = 1;
+        //  static const int targetaoef = 1;
 
 
         float targetZoomRatio{m_ta->zoomRatio};
         targetZoomRatio += delta * wheelScrollRatio; //* curTargetaoef;
         if (targetZoomRatio < 1) targetZoomRatio = 1;
         else if (targetZoomRatio > 2) targetZoomRatio = 2;
-//
+        //
 
         //zoomToCenter(targetZoomRatio);
         if (delta > 0)
-            zoomInToCenter(targetZoomRatio);
-            //zoomInToMousPos(targetZoomRatio, event->pos().rx());
+            zoom(targetZoomRatio);
+        //zoomInToMousPos(targetZoomRatio, event->pos().rx());
         else
-            zoomInToCenter(targetZoomRatio);
-           // zoomOutToMousPos(targetZoomRatio, event->pos().rx());
+            zoom(targetZoomRatio);
+        // zoomOutToMousPos(targetZoomRatio, event->pos().rx());
 
         this->update();
         QGraphicsItem::wheelEvent(event);
     }
+    void zoom(float targetZoomRatio){
+        m_ta->dayWidthInPx = m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
 
+        m_ta->hourWidthInPx = m_ta->dayWidthInPx/24;
+
+        int shift = m_ta->dayWidthInPx - m_ta->hourWidthInPx;
+
+        int targetMin = m_ta->msecFromPx(shift/2);
+        int targetMax = targetMin + m_ta->msecFromPx(m_ta->rulerWidth);
+        m_ta->setMax(targetMax);
+        m_ta->setMax(targetMin);
+
+    }
 
     void zoomInToCenter(float targetZoomRatio){
         //calculating target virtual width
         float targetDayWidthPx = m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
         //calculating center
         float realCenterPx = (m_ta->rulerWidth / 2) ;//- m_ta->dragOffset; //- m_ta->offsetInPx;
-       // qDebug() << "target" << targetZoomRatio;
+        // qDebug() << "target" << targetZoomRatio;
         int shift = m_ta->dragOffset;
-     //   int zoomedShift = shift *  (1 + 24 * (targetZoomRatio - 1));
+        //   int zoomedShift = shift *  (1 + 24 * (targetZoomRatio - 1));
         float curRulerCenterPos = realCenterPx - m_ta->offsetInPx - m_ta->dragOffset;
         double posRatio = curRulerCenterPos  / m_ta->dayWidthInPx;
         qDebug() << "pos Ratio: " << posRatio << realCenterPx << m_ta->rulerWidth;
         float targetCenterPx = targetDayWidthPx * (posRatio);//+ m_ta->offsetInPx; // m_ta->offsetInPx*  (1 + 24 * (targetZoomRatio - 1));;
 
         int targetOffsetInPx = realCenterPx - (targetCenterPx);// - targetDayWidthPx/2) ;
-         qDebug() << "pos rc tc dw" << posRatio << realCenterPx << targetCenterPx << targetDayWidthPx;
-       // qDebug() << " rw" << realCenterPx << fullWidthCenterPx << shift << zoomedShift << targetOffsetInPx;
+        qDebug() << "pos rc tc dw" << posRatio << realCenterPx << targetCenterPx << targetDayWidthPx;
+        // qDebug() << " rw" << realCenterPx << fullWidthCenterPx << shift << zoomedShift << targetOffsetInPx;
         m_ta->dayWidthInPx = targetDayWidthPx;
         m_ta->offsetInPx = targetOffsetInPx;
         m_ta->zoomRatio = targetZoomRatio;
-      //  m_ta->dragOffset = zoomedShift;
+        //  m_ta->dragOffset = zoomedShift;
 
         m_ta->hourWidthInPx = targetDayWidthPx/24;
     }
@@ -198,7 +217,7 @@ private:
         //calculating center
         int shift = m_ta->dragOffset;
         float realCenterPx = (m_ta->rulerWidth / 2);
-       // qDebug() << "target" << targetZoomRatio;
+        // qDebug() << "target" << targetZoomRatio;
 
         int zoomedShift = shift *  (1 + 24 * (targetZoomRatio - 1));
 
@@ -220,14 +239,14 @@ private:
         int dragShift = m_ta->dragOffset;
         int mousePosShift = m_ta->rulerWidth/2 - mouseXPos;
         float realCenterPx = (m_ta->rulerWidth / 2) - dragShift - mousePosShift;
-       // qDebug() << "target" << targetZoomRatio;
+        // qDebug() << "target" << targetZoomRatio;
 
         int zoomedDragShift = dragShift *  (1 + 24 * (targetZoomRatio - 1));
         int zoomedMousePosShift = mousePosShift  *  (1 + 24 * (targetZoomRatio - 1));
         float fullWidthCenterPx = (targetDayWidthPx / 2.) - zoomedDragShift - zoomedMousePosShift;
 
         int targetOffsetInPx = realCenterPx - fullWidthCenterPx;
-//        qDebug() << " rw" << realCenterPx << fullWidthCenterPx << shift << zoomedShift;
+        //        qDebug() << " rw" << realCenterPx << fullWidthCenterPx << shift << zoomedShift;
         m_ta->dayWidthInPx = targetDayWidthPx;
         m_ta->offsetInPx = targetOffsetInPx;
         m_ta->zoomRatio = targetZoomRatio;
@@ -241,14 +260,14 @@ private:
         int dragShift = m_ta->dragOffset;
         int mousePosShift = m_ta->rulerWidth/2 - mouseXPos;
         float realCenterPx = (m_ta->rulerWidth / 2) - dragShift - mousePosShift;
-       // qDebug() << "target" << targetZoomRatio;
+        // qDebug() << "target" << targetZoomRatio;
 
         int zoomedDragShift = dragShift *  (1 + 24 * (targetZoomRatio - 1));
         int zoomedMousePosShift = mousePosShift  *  (1 + 24 * (targetZoomRatio - 1));
         float fullWidthCenterPx = (targetDayWidthPx / 2.) - zoomedDragShift - zoomedMousePosShift;
 
         int targetOffsetInPx = realCenterPx - fullWidthCenterPx;
-//        qDebug() << " rw" << realCenterPx << fullWidthCenterPx << shift << zoomedShift;
+        //        qDebug() << " rw" << realCenterPx << fullWidthCenterPx << shift << zoomedShift;
         m_ta->dayWidthInPx = targetDayWidthPx;
         m_ta->offsetInPx = targetOffsetInPx;
         m_ta->zoomRatio = targetZoomRatio;
@@ -276,7 +295,9 @@ private:
 
         curMouseXPos = mapToScene(event->pos()).rx();
         m_ta->dragOffsetCur = curMouseXPos - mouseXPosOnPress;
-       // qDebug() << "dragging: " << curMouseXPos << mouseXPosOnPress << m_ta->dragOffset;
+
+
+        // qDebug() << "dragging: " << curMouseXPos << mouseXPosOnPress << m_ta->dragOffset;
         // m_ri._dragOffset = mouseXPosOnPress - curMouseXPos;
         //    qDebug() << "mousePos" << curMouseXPos;
         // QGraphicsItem::mouseMoveEvent(event);
@@ -289,12 +310,12 @@ private:
         //    qDebug() << "mousePos" << curMouseXPos;
         // QGraphicsItem::mouseMoveEvent(event);
     }
-        void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override{
-            event->accept();
-            m_ta->dragOffset += m_ta->dragOffsetCur;
-            m_ta->dragOffsetCur = 0;
-            qDebug() << "drag" << m_ta->dragOffset;
-        }
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override{
+        event->accept();
+        m_ta->dragOffset += m_ta->dragOffsetCur;
+        m_ta->dragOffsetCur = 0;
+        qDebug() << "drag" << m_ta->dragOffset;
+    }
 };
 
 class BookmarksLine: public QGraphicsItem{

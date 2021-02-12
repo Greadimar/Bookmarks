@@ -31,9 +31,9 @@ public:
     std::atomic<int> min = 0;//msecs(0);
     std::atomic<int> max = TimeInfo::msecsInDay.count();
 
-    msecs step = TimeInfo::msecsInhour;
+    int step = TimeInfo::msecsInhour.count();
 
-    int stepInPx() {return (step.count() * hourWidthInPx / TimeInfo::msecsInhour.count());}
+    int stepInPx() {return (step * hourWidthInPx / TimeInfo::msecsInhour.count());}
 
     void setMin(int vmin){this->min.store((vmin), std::memory_order_relaxed);}
     void setMax(int vmax){this->max.store((vmax), std::memory_order_relaxed);}
@@ -41,23 +41,29 @@ public:
     int getMax(){return max.load(std::memory_order_relaxed);}
 
 
+
+
     msecs getCentre(){
-        return getDuration()/2 + msecs(min.load(std::memory_order_relaxed));
+        return getVisibleDuration()/2 + msecs(min.load(std::memory_order_relaxed));
     }
-    msecs getDuration(){
+    msecs getVisibleDuration(){
         return msecs(max.load(std::memory_order_relaxed)) - msecs(min.load(std::memory_order_relaxed));
     }
     msecs getUnitingSpread(){
         return msecs{(TimeInfo::msecsInDay.count()/rulerWidth.load())*pxSpreadToUnite};
     }
-    msecs getMsecFromPxPosition(int xPos, int xShift = 0){
-        xPos += xShift;
-        return msecs(static_cast<int>((xPos * TimeInfo::msecsInhour.count()) / hourWidthInPx));
+
+    //mapping coords
+//    msecs msecFromPx(int xPos){
+//        return msecs(static_cast<int>((xPos * TimeInfo::msecsInhour.count()) / hourWidthInPx));
+//    }
+    int msecFromPx(int xPos){
+        return static_cast<int>((xPos * TimeInfo::msecsInhour.count()) / hourWidthInPx);
     }
-    int getPxPosFromMsec(msecs mark){
+    int pxPosFromMsec(msecs mark){
         return mark.count() * (hourWidthInPx / TimeInfo::msecsInhour.count());
     }
-    int getPxPosFromMsec(int mark){
+    int pxPosFromMsec(int mark){
         double pxInMsecs = hourWidthInPx / TimeInfo::msecsInhour.count();
         return mark * pxInMsecs;
     }
