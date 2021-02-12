@@ -21,24 +21,26 @@ public:
 
     const int pxSpreadToUnite{100};
     float hourWidthInPx = 100;
-
-
+    float dayWidthInPx = hourWidthInPx * 24;
+    //int rulerWidth = 100;
+    int offsetInPx = 0;
+    float zoomRatio = 1;
+    int dragOffset = 0;
+    int dragOffsetCur = 0;
 
     std::atomic<int> min = 0;//msecs(0);
     std::atomic<int> max = TimeInfo::msecsInDay.count();
 
     msecs step = TimeInfo::msecsInhour;
 
+    int stepInPx() {return (step.count() * hourWidthInPx / TimeInfo::msecsInhour.count());}
+
     void setMin(int vmin){this->min.store((vmin), std::memory_order_relaxed);}
     void setMax(int vmax){this->max.store((vmax), std::memory_order_relaxed);}
     int getMin(){return min.load(std::memory_order_relaxed);}
     int getMax(){return max.load(std::memory_order_relaxed);}
 
-    void updateHourWidthInPx(){
-        msecs dur = getDuration();
-   //     float msecsIn1Px = dur.count()/rulerWidth.load(std::memory_order_relaxed);
-        hourWidthInPx = TimeInfo::msecsInhour.count() * rulerWidth.load(std::memory_order_relaxed) / dur.count();
-    }
+
     msecs getCentre(){
         return getDuration()/2 + msecs(min.load(std::memory_order_relaxed));
     }
@@ -60,7 +62,7 @@ public:
         return mark * pxInMsecs;
     }
 
-    std::atomic<int> rulerWidth{100};
+    std::atomic<int> rulerWidth{1000};
 };
 
 #endif // TIMECONVERTOR_H

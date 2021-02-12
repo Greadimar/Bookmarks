@@ -16,9 +16,9 @@ QFileBuffer::QFileBuffer(): file(QDir::currentPath()+"b.dat"),  ds(&file)
 void QFileBuffer::generateFile(QSharedPointer<TimeAxis> tc, const std::atomic_bool& isRunning, int count)
 {
     auto startGen = std::chrono::system_clock::now();
-    const static int chunkRatio = 1000;
-    const int innerChunkRation = chunkRatio/10;
-
+    const static int chunkRatio = count%1000;
+    const int innerChunkRation = chunkRatio%10;
+    file.resize(0);
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -27,7 +27,7 @@ void QFileBuffer::generateFile(QSharedPointer<TimeAxis> tc, const std::atomic_bo
     const int msecsInGenerateChunk = TimeInfo::msecsInDay.count() / chunkRatio;
 
     int it = 0;
-    const int chunkToGenerate = count / chunkRatio;
+    const int chunkToGenerate = std::ceil(count / static_cast<float>(chunkRatio));
 
     int curStartMsecs = 0;
     int curDurationMsecs = msecsInGenerateChunk;

@@ -4,6 +4,10 @@
 #include <QGridLayout>
 #include <QOpenGLWidget>
 #include <QSurfaceFormat>
+#include <QMessageBox>
+#include <QSpinBox>
+#include <QLabel>
+#include <QPushButton>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -48,10 +52,28 @@ MainWindow::MainWindow(QWidget *parent)
 
     auto generateAction = new QAction("Сгенерировать");
     this->menuBar()->addAction(generateAction);
+
     connect(generateAction, &QAction::triggered, this, [=](){
         bookmarkMngr->stop();
-        bool isGenerated = false;
-        QMetaObject::invokeMethod(bookmarkMngr.data(), "generateBookmarks", Q_ARG(int, 100000));
+        QDialog d;
+        QGridLayout* lo = new QGridLayout;
+        QSpinBox* sb = new QSpinBox;
+        sb->setRange(1, 1000000000);
+        QLabel* lb = new QLabel("Количество: ");
+        QPushButton* pb = new QPushButton("Сгенерировать");
+        connect(pb, &QPushButton::clicked , this , [=](){
+            bookmarkMngr->isRunning.store(false);
+            QMetaObject::invokeMethod(bookmarkMngr.data(), "generateBookmarks", Q_ARG(int, sb->value()));
+        });
+
+        lo->addWidget(lb);
+        lo->addWidget(sb);
+        lo->addWidget(pb);
+        d.setLayout(lo);
+
+        d.exec();
+
+
        // bookmarkMngr->start();
     });
 
