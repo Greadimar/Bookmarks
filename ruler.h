@@ -113,7 +113,7 @@ private:
         m_ta->rulerWidth.store(rulerWidth); //std::rel_ack?
 
         //recalc curHourWidth
-      //  m_ta->hourWidthInPx =(rulerWidth/(-23 * m_ta->zoomRatio + 47));
+        //  m_ta->hourWidthInPx =(rulerWidth/(-23 * m_ta->zoomRatio + 47));
 
         //drawing ruler
         p->setPen(m_plt.rulerBackground);
@@ -170,7 +170,7 @@ private:
 
 
         float targetZoomInRatio{1.05};
-        float targetZoomOutRatio{1.05};
+        float targetZoomOutRatio{0.95};
 
         if (delta > 0)
             zoomToCenter(targetZoomInRatio);
@@ -181,16 +181,34 @@ private:
         QGraphicsItem::wheelEvent(event);
     }
     void zoomToCenter(float targetZoomRatio){
-     //   m_ta->zoom//Ratio = targetZoomRatio;
-     //   qDebug() << "1 + 24 * (targetZoomRatio - 1)" << 1 + 24 * (targetZoomRatio - 1);
+        //   m_ta->zoom//Ratio = targetZoomRatio;
+        //   qDebug() << "1 + 24 * (targetZoomRatio - 1)" << 1 + 24 * (targetZoomRatio - 1);
+
+        int curPosInMsecs = m_ta->getMin() + m_ta->msecFromPx(curMouseXPos);
+        float mouseRatioInMsecs = (curPosInMsecs - m_ta->getMin())/static_cast<float>((m_ta->getVisibleDuration().count()));
+        float mouseRatio = curMouseXPos / static_cast<float>(m_ta->rulerWidth);
+
+        qDebug() << "cur pos msec h " << curPosInMsecs << duration_cast<hours>(msecs(curPosInMsecs)).count();
+
+        qDebug() << "mouse raio " << mouseRatio << mouseRatioInMsecs;
         m_ta->dayWidthInPx = m_ta->dayWidthInPx * targetZoomRatio;//m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
         m_ta->hourWidthInPx = m_ta->dayWidthInPx/24;
         m_ta->stepInPx = m_ta->stepInPx * targetZoomRatio;
         //qDebug() <<" hh" << m_ta->hourWidthInPx <<  (m_ta->rulerWidth/(-23 * m_ta->zoomRatio + 47));
-      //  qDebug() << "zoom" << "hour day w" << m_ta->hourWidthInPx  << m_ta->dayWidthInPx << m_ta->rulerWidth;
+        //  qDebug() << "zoom" << "hour day w" << m_ta->hourWidthInPx  << m_ta->dayWidthInPx << m_ta->rulerWidth;
+
+
+
         int shift = m_ta->dayWidthInPx - m_ta->rulerWidth;
-        qDebug() << "shift" << shift << m_ta->msecFromPx(shift/2);
-        m_ta->zoomOffsetMsecs = m_ta->msecFromPx(shift/2);
+
+
+        //int msecForMousePos = m_ta->getMin() + m_ta->msecFromPx(curMouseXPos);
+
+
+        qDebug() << "shift" << shift << m_ta->msecFromPx(shift * mouseRatioInMsecs);
+        m_ta->zoomOffsetMsecs = m_ta->msecFromPx(shift * mouseRatioInMsecs );
+
+
         int targetMin = m_ta->zoomOffsetMsecs + m_ta->dragOffsetMsecs + m_ta->dragOffsetCurMsecs;
         int targetMax = targetMin + m_ta->msecFromPx(m_ta->rulerWidth);
         qDebug() << "min max" << targetMin << targetMax;
