@@ -36,6 +36,10 @@ public:
 
    // int stepInPx() {return (step * hourWidthInPx / TimeInfo::msecsInhour.count());}
 
+    int dragOffsetMsecs = 0;
+    int dragOffsetCurMsecs = 0;
+    int zoomOffsetMsecs = 0;
+
     void setMin(int vmin){this->min.store((vmin), std::memory_order_relaxed);}
     void setMax(int vmax){this->max.store((vmax), std::memory_order_relaxed);}
     int getMin(){return min.load(std::memory_order_relaxed);}
@@ -59,8 +63,6 @@ public:
 //        return msecs(static_cast<int>((xPos * TimeInfo::msecsInhour.count()) / hourWidthInPx));
 //    }
     int msecFromPx(int xPos){
-
-
         return static_cast<int>((xPos * TimeInfo::msecsInhour.count()) / hourWidthInPx);
     }
     int pxPosFromMsec(msecs mark){
