@@ -58,14 +58,17 @@ public:
 //        return msecs(static_cast<int>((xPos * TimeInfo::msecsInhour.count()) / hourWidthInPx));
 //    }
     int msecFromPx(int xPos){
+
+
         return static_cast<int>((xPos * TimeInfo::msecsInhour.count()) / hourWidthInPx);
     }
     int pxPosFromMsec(msecs mark){
-        return mark.count() * (hourWidthInPx / TimeInfo::msecsInhour.count());
+        double pxInMsecs = hourWidthInPx / TimeInfo::msecsInhour.count();
+        return mark.count() * pxInMsecs - getMin()*pxInMsecs;
     }
     int pxPosFromMsec(int mark){
         double pxInMsecs = hourWidthInPx / TimeInfo::msecsInhour.count();
-        return mark * pxInMsecs;
+        return mark * pxInMsecs - getMin()*pxInMsecs;
     }
 
     std::atomic<int> rulerWidth{1000};

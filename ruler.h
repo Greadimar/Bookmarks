@@ -108,7 +108,7 @@ private:
         m_ta->rulerWidth.store(rulerWidth); //std::rel_ack?
 
         //recalc curHourWidth
-        m_ta->hourWidthInPx = m_ta->dayWidthInPx/24; //(rulerWidth/(-23 * m_ta->zoomRatio + 47));
+        m_ta->hourWidthInPx =(rulerWidth/(-23 * m_ta->zoomRatio + 47));
 
         //drawing ruler
         p->setPen(m_plt.rulerBackground);
@@ -131,18 +131,26 @@ private:
 
         //        float i = m_ta->offsetInPx + m_ta->dragOffset + m_ta->dragOffsetCur;
         auto rx = curPos.rx();
-        for (; time < 10; time += m_ta->hourWidthInPx){
+
+        static const int msecIn10h = (std::chrono::duration_cast<msecs>(std::chrono::hours(10))).count();
+        static const int msecIn24h = (std::chrono::duration_cast<msecs>(std::chrono::hours(24))).count();
+        int h = 0;
+        for (; time < msecIn10h; time += m_ta->step){
             if (time >= min && time <= max){
-                p->drawLine({rx + time, curPos.ry()}, QPointF{rx + time, curPos.ry() + linesHeight});
-                p->drawText(QPointF{time - hour1xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(time));
+                int curTimePx = m_ta->pxPosFromMsec(time);
+                p->drawLine({rx + curTimePx, curPos.ry()}, QPointF{rx + curTimePx, curPos.ry() + linesHeight});
+                p->drawText(QPointF{curTimePx - hour1xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(h));
             }
+            h++;
 
         }
-        for (; time <= 24; time++){
+        for (; time <= msecIn24h; time += m_ta->step){
             if (time >= min && time <= max){
-                p->drawLine({rx + time, curPos.ry()}, QPointF{rx + time, curPos.ry() + linesHeight});
-                p->drawText(QPointF{time - hour1xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(time));
+                int curTimePx = m_ta->pxPosFromMsec(time);
+                p->drawLine({rx + curTimePx, curPos.ry()}, QPointF{rx + curTimePx, curPos.ry() + linesHeight});
+                p->drawText(QPointF{curTimePx - hour1xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(h));
             }
+            h++;
         }
         // p->restore();
 
@@ -174,16 +182,19 @@ private:
         QGraphicsItem::wheelEvent(event);
     }
     void zoom(float targetZoomRatio){
+        m_ta->zoomRatio = targetZoomRatio;
+        qDebug() << "1 + 24 * (targetZoomRatio - 1)" << 1 + 24 * (targetZoomRatio - 1);
         m_ta->dayWidthInPx = m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
 
         m_ta->hourWidthInPx = m_ta->dayWidthInPx/24;
-
-        int shift = m_ta->dayWidthInPx - m_ta->hourWidthInPx;
-
-        int targetMin = m_ta->msecFromPx(shift/2);
+        qDebug() << "zoom" << "hour day w" << m_ta->hourWidthInPx << m_ta->dayWidthInPx << m_ta->rulerWidth;
+        int shift = m_ta->dayWidthInPx -  m_ta->rulerWidth;
+        qDebug() << "shift" << shift;
+        int targetMin = m_ta->msecFromPx(shift/2); //+ m_ta->msecFromPx(m_ta->dragOffset);
         int targetMax = targetMin + m_ta->msecFromPx(m_ta->rulerWidth);
+        qDebug() << "min max" << targetMin << targetMax;
+        m_ta->setMin(targetMin);
         m_ta->setMax(targetMax);
-        m_ta->setMax(targetMin);
 
     }
 
@@ -293,8 +304,10 @@ private:
     }
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override{
 
-        curMouseXPos = mapToScene(event->pos()).rx();
+        curMouseXPos = event->pos().rx();
         m_ta->dragOffsetCur = curMouseXPos - mouseXPosOnPress;
+        m_ta->setMin(m_ta->getMin() + m_ta->msecFromPx(m_ta->dragOffsetCur));
+        m_ta->setMax(m_ta->getMin() + m_ta->msecFromPx(m_ta->rulerWidth));
 
 
         // qDebug() << "dragging: " << curMouseXPos << mouseXPosOnPress << m_ta->dragOffset;
@@ -305,6 +318,7 @@ private:
     void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override{
 
         curMouseXPos = mapToScene(event->pos()).rx();
+
         //m_ta->dragOffset = mouseXPosOnPress - curMouseXPos;
         //m_ri.dragOffset = mouseXPosOnPress - curMouseXPos;
         //    qDebug() << "mousePos" << curMouseXPos;
@@ -381,10 +395,10 @@ private:
 
     void paintBk(const Bookmark& b, QPainter* p, const QStyleOptionGraphicsItem *st){
         p->setPen(QPen(m_plt.singleBookmarksBorders, 2));
-        int topLeftX = m_ta->getPxPosFromMsec(b.start);
+        int topLeftX = m_ta->pxPosFromMsec(b.start);
 
         QRectF bkRect(topLeftX, m_ri.bookmarksTopY,
-                      m_ta->getPxPosFromMsec(b.end) - topLeftX, m_ri.bookmarksBottomY - m_ri.bookmarksTopY);
+                      m_ta->pxPosFromMsec(b.end) - topLeftX, m_ri.bookmarksBottomY - m_ri.bookmarksTopY);
         QPainterPath pp;
         pp.addRoundedRect(bkRect, 5, 5);
         p->fillPath(pp, QBrush(m_plt.singleBookmarksBackground));
@@ -397,7 +411,7 @@ private:
     }
     void paintMbk(const MultiBookmark& mb, QPainter* p, const QStyleOptionGraphicsItem *st){
         p->setPen(QPen(m_plt.multiBookmarksBorders, 2));
-        QPoint posTopLeft{m_ta->getPxPosFromMsec(mb.start), m_ri.bookmarksTopY};
+        QPoint posTopLeft{m_ta->pxPosFromMsec(mb.start), m_ri.bookmarksTopY};
 
         int w = multiBoookmarkWidth - borderWidth;
         int h = m_ri.bookmarksHeight;
