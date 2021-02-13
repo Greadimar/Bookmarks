@@ -190,30 +190,55 @@ private:
 
         qDebug() << "cur pos msec h " << curPosInMsecs << duration_cast<hours>(msecs(curPosInMsecs)).count();
 
-        qDebug() << "mouse raio " << mouseRatio << mouseRatioInMsecs;
+        float mc = curPosInMsecs;//m_ta->msecFromPx(curMouseXPos);
+
+
+     //   qDebug() << "mouse raio " << mouseRatio << mouseRatioInMsecs;
         m_ta->dayWidthInPx = m_ta->dayWidthInPx * targetZoomRatio;//m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
         m_ta->hourWidthInPx = m_ta->dayWidthInPx/24;
         m_ta->stepInPx = m_ta->stepInPx * targetZoomRatio;
         //qDebug() <<" hh" << m_ta->hourWidthInPx <<  (m_ta->rulerWidth/(-23 * m_ta->zoomRatio + 47));
         //  qDebug() << "zoom" << "hour day w" << m_ta->hourWidthInPx  << m_ta->dayWidthInPx << m_ta->rulerWidth;
+        float mc2 = m_ta->msecFromPx(curMouseXPos);
+        //float mcL = m_ta->msecFromPx(m_ta->pxPosFromMsec(static_cast<int>(mc)));
 
+        qDebug() << "mc mc2 mcl of" << toHours(mc) << toHours(mc2) << mc2-mc;//toHours(mcL) << mcL - mc2;
 
+        int ddCenter = m_ta->dayWidthInPx/2.;
+        int curCenter = m_ta->rulerWidth / 2.;
+        int shift = ddCenter - curCenter;
 
-        int shift = m_ta->dayWidthInPx - m_ta->rulerWidth;
+    //    int shift = m_ta->dayWidthInPx - m_ta->rulerWidth;
 
 
         //int msecForMousePos = m_ta->getMin() + m_ta->msecFromPx(curMouseXPos);
 
+        int difMouse = curCenter - curMouseXPos;
+        int diMMsec = m_ta->msecFromPx(difMouse);
 
-        qDebug() << "shift" << shift << m_ta->msecFromPx(shift * mouseRatioInMsecs);
-        m_ta->zoomOffsetMsecs = m_ta->msecFromPx(shift * mouseRatioInMsecs );
+        //qDebug() << "shift" << shift << m_ta->msecFromPx(shift) <<difMouse << diMMsec << duration_cast<hours>(msecs(diMMsec)).count();
+      //  m_ta->zoomOffsetMsecs = diMMsec - m_ta->msecFromPx(shift);// - m_ta->msecFromPx(curCenter - curMouseXPos);
 
+        m_ta->zoomOffsetMsecs = mc - mc2;
 
+        qDebug() << "offset" << toHours(m_ta->msecFromPx(shift)) << toHours(diMMsec);
         int targetMin = m_ta->zoomOffsetMsecs + m_ta->dragOffsetMsecs + m_ta->dragOffsetCurMsecs;
         int targetMax = targetMin + m_ta->msecFromPx(m_ta->rulerWidth);
-        qDebug() << "min max" << targetMin << targetMax;
+        qDebug() << "min max" << targetMin << targetMax << toHours(targetMin) << toHours(targetMax) ;
         m_ta->setMin(targetMin);
         m_ta->setMax(targetMax);
+        /*     double halfDuration = (m_ta->getMax() - m_ta->getMin())/2.;
+             double centreMsec = m_ta->getMin() + halfDuration;
+            // qDebug() << ""
+             int tMin = centreMsec - targetZoomRatio*(halfDuration/2.);
+             int tMax = centreMsec + targetZoomRatio*(halfDuration/2.);
+             qDebug() << "tmin tmax" << tMin << tMax;
+             m_ta->setMin(tMin);
+             m_ta->setMax(tMax);
+
+             m_ta->dayWidthInPx = m_ta->dayWidthInPx * targetZoomRatio;//m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
+             m_ta->hourWidthInPx = m_ta->dayWidthInPx/24.;
+             m_ta->stepInPx = m_ta->stepInPx * targetZoomRatio;*/
 
     }
 
