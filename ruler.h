@@ -70,6 +70,8 @@ public:
             int rulerWidth = viewWidth;// - m_ri.leftMargin - m_ri.rightMargin;
             m_ta->rulerWidth.store(rulerWidth);
             m_ta->dayWidthInPx = rulerWidth;
+            m_ta->hourWidthInPx = m_ta->dayWidthInPx / 24;
+            m_ta->stepInPx = m_ta->hourWidthInPx;
         });
     }
 private:
@@ -104,11 +106,14 @@ private:
         QPointF curPos = scenePos();
         int viewWidth = scene()->views().first()->width();
         int rulerWidth = viewWidth;//- m_ri.leftMargin - m_ri.rightMargin;
-
+        float resizeSinceLastRender = rulerWidth / m_ta->rulerWidth;
+        m_ta->stepInPx = m_ta->stepInPx * resizeSinceLastRender;
+        m_ta->hourWidthInPx = m_ta->hourWidthInPx * resizeSinceLastRender;
+        m_ta->dayWidthInPx = m_ta->hourWidthInPx * 24;
         m_ta->rulerWidth.store(rulerWidth); //std::rel_ack?
 
         //recalc curHourWidth
-        m_ta->hourWidthInPx =(rulerWidth/(-23 * m_ta->zoomRatio + 47));
+      //  m_ta->hourWidthInPx =(rulerWidth/(-23 * m_ta->zoomRatio + 47));
 
         //drawing ruler
         p->setPen(m_plt.rulerBackground);
@@ -164,7 +169,7 @@ private:
         //  static const int targetaoef = 1;
 
 
-        float targetZoomRatio{m_ta->zoomRatio};
+        float targetZoomRatio{1.05};
         targetZoomRatio += delta * wheelScrollRatio; //* curTargetaoef;
         if (targetZoomRatio < 1) targetZoomRatio = 1;
         else if (targetZoomRatio > 2) targetZoomRatio = 2;
@@ -182,109 +187,110 @@ private:
         QGraphicsItem::wheelEvent(event);
     }
     void zoom(float targetZoomRatio){
-        m_ta->zoomRatio = targetZoomRatio;
-        qDebug() << "1 + 24 * (targetZoomRatio - 1)" << 1 + 24 * (targetZoomRatio - 1);
-        m_ta->dayWidthInPx = m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
-
+     //   m_ta->zoom//Ratio = targetZoomRatio;
+     //   qDebug() << "1 + 24 * (targetZoomRatio - 1)" << 1 + 24 * (targetZoomRatio - 1);
+        m_ta->dayWidthInPx = m_ta->dayWidthInPx * 1.05;//m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
         m_ta->hourWidthInPx = m_ta->dayWidthInPx/24;
-        qDebug() << "zoom" << "hour day w" << m_ta->hourWidthInPx << m_ta->dayWidthInPx << m_ta->rulerWidth;
-        int shift = m_ta->dayWidthInPx -  m_ta->rulerWidth;
+        m_ta->stepInPx = m_ta->stepInPx * 1.05;
+        //qDebug() <<" hh" << m_ta->hourWidthInPx <<  (m_ta->rulerWidth/(-23 * m_ta->zoomRatio + 47));
+      //  qDebug() << "zoom" << "hour day w" << m_ta->hourWidthInPx  << m_ta->dayWidthInPx << m_ta->rulerWidth;
+        int shift = m_ta->dayWidthInPx - m_ta->rulerWidth;
         qDebug() << "shift" << shift;
-        int targetMin = m_ta->msecFromPx(shift/2); //+ m_ta->msecFromPx(m_ta->dragOffset);
-        int targetMax = targetMin + m_ta->msecFromPx(m_ta->rulerWidth);
+        int targetMin = m_ta->getMin() - m_ta->msecFromPx(shift/2); //+ m_ta->msecFromPx(m_ta->dragOffset);
+        int targetMax = m_ta->getMax() - m_ta->msecFromPx(shift/2);
         qDebug() << "min max" << targetMin << targetMax;
         m_ta->setMin(targetMin);
         m_ta->setMax(targetMax);
 
     }
 
-    void zoomInToCenter(float targetZoomRatio){
-        //calculating target virtual width
-        float targetDayWidthPx = m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
-        //calculating center
-        float realCenterPx = (m_ta->rulerWidth / 2) ;//- m_ta->dragOffset; //- m_ta->offsetInPx;
-        // qDebug() << "target" << targetZoomRatio;
-        int shift = m_ta->dragOffset;
-        //   int zoomedShift = shift *  (1 + 24 * (targetZoomRatio - 1));
-        float curRulerCenterPos = realCenterPx - m_ta->offsetInPx - m_ta->dragOffset;
-        double posRatio = curRulerCenterPos  / m_ta->dayWidthInPx;
-        qDebug() << "pos Ratio: " << posRatio << realCenterPx << m_ta->rulerWidth;
-        float targetCenterPx = targetDayWidthPx * (posRatio);//+ m_ta->offsetInPx; // m_ta->offsetInPx*  (1 + 24 * (targetZoomRatio - 1));;
+//    void zoomInToCenter(float targetZoomRatio){
+//        //calculating target virtual width
+//        float targetDayWidthPx = m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
+//        //calculating center
+//        float realCenterPx = (m_ta->rulerWidth / 2) ;//- m_ta->dragOffset; //- m_ta->offsetInPx;
+//        // qDebug() << "target" << targetZoomRatio;
+//        int shift = m_ta->dragOffset;
+//        //   int zoomedShift = shift *  (1 + 24 * (targetZoomRatio - 1));
+//        float curRulerCenterPos = realCenterPx - m_ta->offsetInPx - m_ta->dragOffset;
+//        double posRatio = curRulerCenterPos  / m_ta->dayWidthInPx;
+//        qDebug() << "pos Ratio: " << posRatio << realCenterPx << m_ta->rulerWidth;
+//        float targetCenterPx = targetDayWidthPx * (posRatio);//+ m_ta->offsetInPx; // m_ta->offsetInPx*  (1 + 24 * (targetZoomRatio - 1));;
 
-        int targetOffsetInPx = realCenterPx - (targetCenterPx);// - targetDayWidthPx/2) ;
-        qDebug() << "pos rc tc dw" << posRatio << realCenterPx << targetCenterPx << targetDayWidthPx;
-        // qDebug() << " rw" << realCenterPx << fullWidthCenterPx << shift << zoomedShift << targetOffsetInPx;
-        m_ta->dayWidthInPx = targetDayWidthPx;
-        m_ta->offsetInPx = targetOffsetInPx;
-        m_ta->zoomRatio = targetZoomRatio;
-        //  m_ta->dragOffset = zoomedShift;
+//        int targetOffsetInPx = realCenterPx - (targetCenterPx);// - targetDayWidthPx/2) ;
+//        qDebug() << "pos rc tc dw" << posRatio << realCenterPx << targetCenterPx << targetDayWidthPx;
+//        // qDebug() << " rw" << realCenterPx << fullWidthCenterPx << shift << zoomedShift << targetOffsetInPx;
+//        m_ta->dayWidthInPx = targetDayWidthPx;
+//        m_ta->offsetInPx = targetOffsetInPx;
+//        m_ta->zoomRatio = targetZoomRatio;
+//        //  m_ta->dragOffset = zoomedShift;
 
-        m_ta->hourWidthInPx = targetDayWidthPx/24;
-    }
+//        m_ta->hourWidthInPx = targetDayWidthPx/24;
+//    }
 
-    void zoomOutToCenter(float targetZoomRatio){
-        //calculating target virtual width
-        float targetDayWidthPx = m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
-        //calculating center
-        int shift = m_ta->dragOffset;
-        float realCenterPx = (m_ta->rulerWidth / 2);
-        // qDebug() << "target" << targetZoomRatio;
+//    void zoomOutToCenter(float targetZoomRatio){
+//        //calculating target virtual width
+//        float targetDayWidthPx = m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
+//        //calculating center
+//        int shift = m_ta->dragOffset;
+//        float realCenterPx = (m_ta->rulerWidth / 2);
+//        // qDebug() << "target" << targetZoomRatio;
 
-        int zoomedShift = shift *  (1 + 24 * (targetZoomRatio - 1));
+//        int zoomedShift = shift *  (1 + 24 * (targetZoomRatio - 1));
 
-        float fullWidthCenterPx = (targetDayWidthPx / 2.) - zoomedShift;
+//        float fullWidthCenterPx = (targetDayWidthPx / 2.) - zoomedShift;
 
-        int targetOffsetInPx = realCenterPx - fullWidthCenterPx;
-        qDebug() << " rw" << realCenterPx << fullWidthCenterPx << shift << zoomedShift << targetOffsetInPx;
-        m_ta->dayWidthInPx = targetDayWidthPx;
-        m_ta->offsetInPx = targetOffsetInPx;
-        m_ta->zoomRatio = targetZoomRatio;
+//        int targetOffsetInPx = realCenterPx - fullWidthCenterPx;
+//        qDebug() << " rw" << realCenterPx << fullWidthCenterPx << shift << zoomedShift << targetOffsetInPx;
+//        m_ta->dayWidthInPx = targetDayWidthPx;
+//        m_ta->offsetInPx = targetOffsetInPx;
+//        //m_ta->zoomRatio = targetZoomRatio;
 
-        m_ta->hourWidthInPx = fullWidthCenterPx/24;
-    }
+//        m_ta->hourWidthInPx = fullWidthCenterPx/24;
+//    }
 
-    void zoomInToMousPos(float targetZoomRatio, int mouseXPos){
-        //calculating target virtual width
-        float targetDayWidthPx = m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
-        //calculating center
-        int dragShift = m_ta->dragOffset;
-        int mousePosShift = m_ta->rulerWidth/2 - mouseXPos;
-        float realCenterPx = (m_ta->rulerWidth / 2) - dragShift - mousePosShift;
-        // qDebug() << "target" << targetZoomRatio;
+//    void zoomInToMousPos(float targetZoomRatio, int mouseXPos){
+//        //calculating target virtual width
+//        float targetDayWidthPx = m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
+//        //calculating center
+//        int dragShift = m_ta->dragOffset;
+//        int mousePosShift = m_ta->rulerWidth/2 - mouseXPos;
+//        float realCenterPx = (m_ta->rulerWidth / 2) - dragShift - mousePosShift;
+//        // qDebug() << "target" << targetZoomRatio;
 
-        int zoomedDragShift = dragShift *  (1 + 24 * (targetZoomRatio - 1));
-        int zoomedMousePosShift = mousePosShift  *  (1 + 24 * (targetZoomRatio - 1));
-        float fullWidthCenterPx = (targetDayWidthPx / 2.) - zoomedDragShift - zoomedMousePosShift;
+//        int zoomedDragShift = dragShift *  (1 + 24 * (targetZoomRatio - 1));
+//        int zoomedMousePosShift = mousePosShift  *  (1 + 24 * (targetZoomRatio - 1));
+//        float fullWidthCenterPx = (targetDayWidthPx / 2.) - zoomedDragShift - zoomedMousePosShift;
 
-        int targetOffsetInPx = realCenterPx - fullWidthCenterPx;
-        //        qDebug() << " rw" << realCenterPx << fullWidthCenterPx << shift << zoomedShift;
-        m_ta->dayWidthInPx = targetDayWidthPx;
-        m_ta->offsetInPx = targetOffsetInPx;
-        m_ta->zoomRatio = targetZoomRatio;
+//        int targetOffsetInPx = realCenterPx - fullWidthCenterPx;
+//        //        qDebug() << " rw" << realCenterPx << fullWidthCenterPx << shift << zoomedShift;
+//        m_ta->dayWidthInPx = targetDayWidthPx;
+//        m_ta->offsetInPx = targetOffsetInPx;
+//        m_ta->zoomRatio = targetZoomRatio;
 
-        m_ta->hourWidthInPx = fullWidthCenterPx/24;
-    }
-    void zoomOutToMousPos(float targetZoomRatio, int mouseXPos){
-        //calculating target virtual width
-        float targetDayWidthPx = m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
-        //calculating center
-        int dragShift = m_ta->dragOffset;
-        int mousePosShift = m_ta->rulerWidth/2 - mouseXPos;
-        float realCenterPx = (m_ta->rulerWidth / 2) - dragShift - mousePosShift;
-        // qDebug() << "target" << targetZoomRatio;
+//        m_ta->hourWidthInPx = fullWidthCenterPx/24;
+//    }
+//    void zoomOutToMousPos(float targetZoomRatio, int mouseXPos){
+//        //calculating target virtual width
+//        float targetDayWidthPx = m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
+//        //calculating center
+//        int dragShift = m_ta->dragOffset;
+//        int mousePosShift = m_ta->rulerWidth/2 - mouseXPos;
+//        float realCenterPx = (m_ta->rulerWidth / 2) - dragShift - mousePosShift;
+//        // qDebug() << "target" << targetZoomRatio;
 
-        int zoomedDragShift = dragShift *  (1 + 24 * (targetZoomRatio - 1));
-        int zoomedMousePosShift = mousePosShift  *  (1 + 24 * (targetZoomRatio - 1));
-        float fullWidthCenterPx = (targetDayWidthPx / 2.) - zoomedDragShift - zoomedMousePosShift;
+//        int zoomedDragShift = dragShift *  (1 + 24 * (targetZoomRatio - 1));
+//        int zoomedMousePosShift = mousePosShift  *  (1 + 24 * (targetZoomRatio - 1));
+//        float fullWidthCenterPx = (targetDayWidthPx / 2.) - zoomedDragShift - zoomedMousePosShift;
 
-        int targetOffsetInPx = realCenterPx - fullWidthCenterPx;
-        //        qDebug() << " rw" << realCenterPx << fullWidthCenterPx << shift << zoomedShift;
-        m_ta->dayWidthInPx = targetDayWidthPx;
-        m_ta->offsetInPx = targetOffsetInPx;
-        m_ta->zoomRatio = targetZoomRatio;
+//        int targetOffsetInPx = realCenterPx - fullWidthCenterPx;
+//        //        qDebug() << " rw" << realCenterPx << fullWidthCenterPx << shift << zoomedShift;
+//        m_ta->dayWidthInPx = targetDayWidthPx;
+//        m_ta->offsetInPx = targetOffsetInPx;
+//        m_ta->zoomRatio = targetZoomRatio;
 
-        m_ta->hourWidthInPx = fullWidthCenterPx/24;
-    }
+//        m_ta->hourWidthInPx = fullWidthCenterPx/24;
+//    }
 
 
     float zoomCurve(const float& targetZoomRaio){

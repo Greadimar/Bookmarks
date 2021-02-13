@@ -22,9 +22,10 @@ public:
     const int pxSpreadToUnite{100};
     float hourWidthInPx = 100;
     float dayWidthInPx = hourWidthInPx * 24;
+    float stepInPx = hourWidthInPx;
     //int rulerWidth = 100;
     int offsetInPx = 0;
-    float zoomRatio = 1;
+    //float zoomRatio = 1;
     int dragOffset = 0;
     int dragOffsetCur = 0;
 
@@ -33,7 +34,7 @@ public:
 
     int step = TimeInfo::msecsInhour.count();
 
-    int stepInPx() {return (step * hourWidthInPx / TimeInfo::msecsInhour.count());}
+   // int stepInPx() {return (step * hourWidthInPx / TimeInfo::msecsInhour.count());}
 
     void setMin(int vmin){this->min.store((vmin), std::memory_order_relaxed);}
     void setMax(int vmax){this->max.store((vmax), std::memory_order_relaxed);}
@@ -63,12 +64,12 @@ public:
         return static_cast<int>((xPos * TimeInfo::msecsInhour.count()) / hourWidthInPx);
     }
     int pxPosFromMsec(msecs mark){
-        double pxInMsecs = hourWidthInPx / TimeInfo::msecsInhour.count();
-        return mark.count() * pxInMsecs - getMin()*pxInMsecs;
+        double pxInMsec = hourWidthInPx / TimeInfo::msecsInhour.count();
+        return mark.count() * pxInMsec - getMin()*pxInMsec;
     }
     int pxPosFromMsec(int mark){
-        double pxInMsecs = hourWidthInPx / TimeInfo::msecsInhour.count();
-        return mark * pxInMsecs - getMin()*pxInMsecs;
+        double pxInMsec = hourWidthInPx / TimeInfo::msecsInhour.count();
+        return mark * pxInMsec - getMin()*pxInMsec;
     }
 
     std::atomic<int> rulerWidth{1000};
