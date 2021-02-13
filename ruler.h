@@ -70,6 +70,8 @@ public:
             int rulerWidth = viewWidth;// - m_ri.leftMargin - m_ri.rightMargin;
             m_ta->rulerWidth.store(rulerWidth);
             m_ta->dayWidthInPx = rulerWidth;
+            m_ta->hourWidthInPx = m_ta->dayWidthInPx / 24;
+            m_ta->stepInPx = m_ta->hourWidthInPx;
         });
     }
 private:
@@ -104,11 +106,14 @@ private:
         QPointF curPos = scenePos();
         int viewWidth = scene()->views().first()->width();
         int rulerWidth = viewWidth;//- m_ri.leftMargin - m_ri.rightMargin;
-
+        float resizeSinceLastRender = rulerWidth / static_cast<float>(m_ta->rulerWidth);
+        m_ta->stepInPx = m_ta->stepInPx * resizeSinceLastRender;
+        m_ta->hourWidthInPx = m_ta->hourWidthInPx * resizeSinceLastRender;
+        m_ta->dayWidthInPx = m_ta->hourWidthInPx * 24;
         m_ta->rulerWidth.store(rulerWidth); //std::rel_ack?
 
         //recalc curHourWidth
-        m_ta->hourWidthInPx = m_ta->dayWidthInPx/24; //(rulerWidth/(-23 * m_ta->zoomRatio + 47));
+        //  m_ta->hourWidthInPx =(rulerWidth/(-23 * m_ta->zoomRatio + 47));
 
         //drawing ruler
         p->setPen(m_plt.rulerBackground);
@@ -121,21 +126,36 @@ private:
         p->setFont(font);
 
         int time{0};
+        int min{m_ta->getMin()};
+        int max{m_ta->getMax()};
 
-        float i = m_ta->offsetInPx + m_ta->dragOffset + m_ta->dragOffsetCur;
-        for (; time < 10; time++){
-            if (i > m_ri.leftMargin && i < rulerWidth){
-                p->drawLine({curPos.rx() + i, curPos.ry()}, QPointF{curPos.rx() + i, curPos.ry() + linesHeight});
-                p->drawText(QPointF{i - hour1xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(time));
+
+
+        // int msecInPx{static_cast<int>(m_ta->getVisibleDuration().count()/ rulerWidth)};
+
+
+        //        float i = m_ta->offsetInPx + m_ta->dragOffset + m_ta->dragOffsetCur;
+        auto rx = curPos.rx();
+
+        static const int msecIn10h = (std::chrono::duration_cast<msecs>(std::chrono::hours(10))).count();
+        static const int msecIn24h = (std::chrono::duration_cast<msecs>(std::chrono::hours(24))).count();
+        int h = 0;
+        for (; time < msecIn10h; time += m_ta->step){
+            if (time >= min && time <= max){
+                int curTimePx = m_ta->pxPosFromMsec(time);
+                p->drawLine({rx + curTimePx, curPos.ry()}, QPointF{rx + curTimePx, curPos.ry() + linesHeight});
+                p->drawText(QPointF{curTimePx - hour1xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(h));
             }
-            i += m_ta->hourWidthInPx;
+            h++;
+
         }
-        for (; time <= 24; time++){
-            if (i > m_ri.leftMargin && i < rulerWidth){
-                p->drawLine({curPos.rx() + i, curPos.ry()}, QPointF{curPos.rx() + i, curPos.ry() + linesHeight});
-                p->drawText(QPointF{i - hour2xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(time));
+        for (; time <= msecIn24h; time += m_ta->step){
+            if (time >= min && time <= max){
+                int curTimePx = m_ta->pxPosFromMsec(time);
+                p->drawLine({rx + curTimePx, curPos.ry()}, QPointF{rx + curTimePx, curPos.ry() + linesHeight});
+                p->drawText(QPointF{curTimePx - hour1xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(h));
             }
-            i += m_ta->hourWidthInPx;
+            h++;
         }
         // p->restore();
 
@@ -146,114 +166,35 @@ private:
     virtual void wheelEvent(QGraphicsSceneWheelEvent *event) override{
         int delta = event->delta();
         static const float wheelScrollRatio = 0.0005;
-      //  static const int targetaoef = 1;
+        //  static const int targetaoef = 1;
 
 
-        float targetZoomRatio{m_ta->zoomRatio};
-        targetZoomRatio += delta * wheelScrollRatio; //* curTargetaoef;
-        if (targetZoomRatio < 1) targetZoomRatio = 1;
-        else if (targetZoomRatio > 2) targetZoomRatio = 2;
-//
+        float targetZoomInRatio{1.05};
+        float targetZoomOutRatio{0.95};
 
-        //zoomToCenter(targetZoomRatio);
         if (delta > 0)
-            zoomInToCenter(targetZoomRatio);
-            //zoomInToMousPos(targetZoomRatio, event->pos().rx());
+            zoomToCenter(targetZoomInRatio);
         else
-            zoomInToCenter(targetZoomRatio);
-           // zoomOutToMousPos(targetZoomRatio, event->pos().rx());
+            zoomToCenter(targetZoomOutRatio);
 
         this->update();
         QGraphicsItem::wheelEvent(event);
     }
+    void zoomToCenter(float targetZoomRatio){
+        //   m_ta->zoom//Ratio = targetZoomRatio;
+        int curPosInMsecs = m_ta->getMin() + m_ta->msecFromPx(curMouseXPos);
+        m_ta->dayWidthInPx = m_ta->dayWidthInPx * targetZoomRatio;
+        m_ta->hourWidthInPx = m_ta->dayWidthInPx/24;
+        m_ta->stepInPx = m_ta->stepInPx * targetZoomRatio;
+        float targetMousePosMsec = m_ta->msecFromPx(curMouseXPos);
 
 
-    void zoomInToCenter(float targetZoomRatio){
-        //calculating target virtual width
-        float targetDayWidthPx = m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
-        //calculating center
-        float realCenterPx = (m_ta->rulerWidth / 2) ;//- m_ta->dragOffset; //- m_ta->offsetInPx;
-       // qDebug() << "target" << targetZoomRatio;
-        int shift = m_ta->dragOffset;
-     //   int zoomedShift = shift *  (1 + 24 * (targetZoomRatio - 1));
-        float curRulerCenterPos = realCenterPx - m_ta->offsetInPx - m_ta->dragOffset;
-        double posRatio = curRulerCenterPos  / m_ta->dayWidthInPx;
-        qDebug() << "pos Ratio: " << posRatio << realCenterPx << m_ta->rulerWidth;
-        float targetCenterPx = targetDayWidthPx * (posRatio);//+ m_ta->offsetInPx; // m_ta->offsetInPx*  (1 + 24 * (targetZoomRatio - 1));;
-
-        int targetOffsetInPx = realCenterPx - (targetCenterPx);// - targetDayWidthPx/2) ;
-         qDebug() << "pos rc tc dw" << posRatio << realCenterPx << targetCenterPx << targetDayWidthPx;
-       // qDebug() << " rw" << realCenterPx << fullWidthCenterPx << shift << zoomedShift << targetOffsetInPx;
-        m_ta->dayWidthInPx = targetDayWidthPx;
-        m_ta->offsetInPx = targetOffsetInPx;
-        m_ta->zoomRatio = targetZoomRatio;
-      //  m_ta->dragOffset = zoomedShift;
-
-        m_ta->hourWidthInPx = targetDayWidthPx/24;
-    }
-
-    void zoomOutToCenter(float targetZoomRatio){
-        //calculating target virtual width
-        float targetDayWidthPx = m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
-        //calculating center
-        int shift = m_ta->dragOffset;
-        float realCenterPx = (m_ta->rulerWidth / 2);
-       // qDebug() << "target" << targetZoomRatio;
-
-        int zoomedShift = shift *  (1 + 24 * (targetZoomRatio - 1));
-
-        float fullWidthCenterPx = (targetDayWidthPx / 2.) - zoomedShift;
-
-        int targetOffsetInPx = realCenterPx - fullWidthCenterPx;
-        qDebug() << " rw" << realCenterPx << fullWidthCenterPx << shift << zoomedShift << targetOffsetInPx;
-        m_ta->dayWidthInPx = targetDayWidthPx;
-        m_ta->offsetInPx = targetOffsetInPx;
-        m_ta->zoomRatio = targetZoomRatio;
-
-        m_ta->hourWidthInPx = fullWidthCenterPx/24;
-    }
-
-    void zoomInToMousPos(float targetZoomRatio, int mouseXPos){
-        //calculating target virtual width
-        float targetDayWidthPx = m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
-        //calculating center
-        int dragShift = m_ta->dragOffset;
-        int mousePosShift = m_ta->rulerWidth/2 - mouseXPos;
-        float realCenterPx = (m_ta->rulerWidth / 2) - dragShift - mousePosShift;
-       // qDebug() << "target" << targetZoomRatio;
-
-        int zoomedDragShift = dragShift *  (1 + 24 * (targetZoomRatio - 1));
-        int zoomedMousePosShift = mousePosShift  *  (1 + 24 * (targetZoomRatio - 1));
-        float fullWidthCenterPx = (targetDayWidthPx / 2.) - zoomedDragShift - zoomedMousePosShift;
-
-        int targetOffsetInPx = realCenterPx - fullWidthCenterPx;
-//        qDebug() << " rw" << realCenterPx << fullWidthCenterPx << shift << zoomedShift;
-        m_ta->dayWidthInPx = targetDayWidthPx;
-        m_ta->offsetInPx = targetOffsetInPx;
-        m_ta->zoomRatio = targetZoomRatio;
-
-        m_ta->hourWidthInPx = fullWidthCenterPx/24;
-    }
-    void zoomOutToMousPos(float targetZoomRatio, int mouseXPos){
-        //calculating target virtual width
-        float targetDayWidthPx = m_ta->rulerWidth *  (1 + 24 * (targetZoomRatio - 1));
-        //calculating center
-        int dragShift = m_ta->dragOffset;
-        int mousePosShift = m_ta->rulerWidth/2 - mouseXPos;
-        float realCenterPx = (m_ta->rulerWidth / 2) - dragShift - mousePosShift;
-       // qDebug() << "target" << targetZoomRatio;
-
-        int zoomedDragShift = dragShift *  (1 + 24 * (targetZoomRatio - 1));
-        int zoomedMousePosShift = mousePosShift  *  (1 + 24 * (targetZoomRatio - 1));
-        float fullWidthCenterPx = (targetDayWidthPx / 2.) - zoomedDragShift - zoomedMousePosShift;
-
-        int targetOffsetInPx = realCenterPx - fullWidthCenterPx;
-//        qDebug() << " rw" << realCenterPx << fullWidthCenterPx << shift << zoomedShift;
-        m_ta->dayWidthInPx = targetDayWidthPx;
-        m_ta->offsetInPx = targetOffsetInPx;
-        m_ta->zoomRatio = targetZoomRatio;
-
-        m_ta->hourWidthInPx = fullWidthCenterPx/24;
+        m_ta->zoomOffsetMsecs = curPosInMsecs - targetMousePosMsec;
+        int targetMin = m_ta->zoomOffsetMsecs ;
+        int targetMax = targetMin + m_ta->msecFromPx(m_ta->rulerWidth);
+        m_ta->setMin(targetMin);
+        m_ta->setMax(targetMax);
+        m_ta->dragOffset = 0;
     }
 
 
@@ -264,37 +205,38 @@ private:
 
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override{
         mouseXPosOnPress = event->pos().rx();
-        qDebug() << "mouse pressed";
         if (event->button() == Qt::MidButton){
 
             m_ta->dragOffset = 0;
+            m_ta->dayWidthInPx = m_ta->rulerWidth;
+            m_ta->hourWidthInPx = m_ta->dayWidthInPx / 24;
+            m_ta->step = TimeInfo::msecsInhour.count();
+            m_ta->stepInPx = m_ta->step * (m_ta->hourWidthInPx /static_cast<float>(TimeInfo::msecsInhour.count()));
+
+            m_ta->setMin(0);
+            m_ta->setMax(m_ta->msecFromPx(m_ta->dayWidthInPx));
 
         }
         else event->accept();
     }
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override{
 
-        curMouseXPos = mapToScene(event->pos()).rx();
-        m_ta->dragOffsetCur = curMouseXPos - mouseXPosOnPress;
-       // qDebug() << "dragging: " << curMouseXPos << mouseXPosOnPress << m_ta->dragOffset;
-        // m_ri._dragOffset = mouseXPosOnPress - curMouseXPos;
-        //    qDebug() << "mousePos" << curMouseXPos;
-        // QGraphicsItem::mouseMoveEvent(event);
+        curMouseXPos = event->pos().rx();
+        m_ta->dragOffsetCur = mouseXPosOnPress - curMouseXPos;
+
+        m_ta->setMin(m_ta->zoomOffsetMsecs + m_ta->msecFromPx(m_ta->dragOffset + m_ta->dragOffsetCur));
+        m_ta->setMax(m_ta->getMin() + m_ta->msecFromPx(m_ta->rulerWidth));
+
     }
     void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override{
-
         curMouseXPos = mapToScene(event->pos()).rx();
-        //m_ta->dragOffset = mouseXPosOnPress - curMouseXPos;
-        //m_ri.dragOffset = mouseXPosOnPress - curMouseXPos;
-        //    qDebug() << "mousePos" << curMouseXPos;
-        // QGraphicsItem::mouseMoveEvent(event);
     }
-        void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override{
-            event->accept();
-            m_ta->dragOffset += m_ta->dragOffsetCur;
-            m_ta->dragOffsetCur = 0;
-            qDebug() << "drag" << m_ta->dragOffset;
-        }
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override{
+        event->accept();
+        m_ta->dragOffset += m_ta->dragOffsetCur;
+        m_ta->dragOffsetCur = 0;
+
+    }
 };
 
 class BookmarksLine: public QGraphicsItem{
@@ -360,10 +302,10 @@ private:
 
     void paintBk(const Bookmark& b, QPainter* p, const QStyleOptionGraphicsItem *st){
         p->setPen(QPen(m_plt.singleBookmarksBorders, 2));
-        int topLeftX = m_ta->getPxPosFromMsec(b.start);
+        int topLeftX = m_ta->pxPosFromMsec(b.start);
 
         QRectF bkRect(topLeftX, m_ri.bookmarksTopY,
-                      m_ta->getPxPosFromMsec(b.end) - topLeftX, m_ri.bookmarksBottomY - m_ri.bookmarksTopY);
+                      m_ta->pxPosFromMsec(b.end) - topLeftX, m_ri.bookmarksBottomY - m_ri.bookmarksTopY);
         QPainterPath pp;
         pp.addRoundedRect(bkRect, 5, 5);
         p->fillPath(pp, QBrush(m_plt.singleBookmarksBackground));
@@ -376,7 +318,7 @@ private:
     }
     void paintMbk(const MultiBookmark& mb, QPainter* p, const QStyleOptionGraphicsItem *st){
         p->setPen(QPen(m_plt.multiBookmarksBorders, 2));
-        QPoint posTopLeft{m_ta->getPxPosFromMsec(mb.start), m_ri.bookmarksTopY};
+        QPoint posTopLeft{m_ta->pxPosFromMsec(mb.start), m_ri.bookmarksTopY};
 
         int w = multiBoookmarkWidth - borderWidth;
         int h = m_ri.bookmarksHeight;

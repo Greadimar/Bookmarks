@@ -22,18 +22,18 @@ public:
     const int pxSpreadToUnite{100};
     float hourWidthInPx = 100;
     float dayWidthInPx = hourWidthInPx * 24;
-    //int rulerWidth = 100;
-    int offsetInPx = 0;
-    float zoomRatio = 1;
+    float stepInPx = hourWidthInPx;
+
     int dragOffset = 0;
     int dragOffsetCur = 0;
 
     std::atomic<int> min = 0;//msecs(0);
     std::atomic<int> max = TimeInfo::msecsInDay.count();
 
-    msecs step = TimeInfo::msecsInhour;
+    int step = TimeInfo::msecsInhour.count();
 
-    int stepInPx() {return (step.count() * hourWidthInPx / TimeInfo::msecsInhour.count());}
+
+    int zoomOffsetMsecs = 0;
 
     void setMin(int vmin){this->min.store((vmin), std::memory_order_relaxed);}
     void setMax(int vmax){this->max.store((vmax), std::memory_order_relaxed);}
@@ -42,24 +42,27 @@ public:
 
 
     msecs getCentre(){
-        return getDuration()/2 + msecs(min.load(std::memory_order_relaxed));
+        return getVisibleDuration()/2 + msecs(min.load(std::memory_order_relaxed));
     }
-    msecs getDuration(){
+    msecs getVisibleDuration(){
         return msecs(max.load(std::memory_order_relaxed)) - msecs(min.load(std::memory_order_relaxed));
     }
     msecs getUnitingSpread(){
         return msecs{(TimeInfo::msecsInDay.count()/rulerWidth.load())*pxSpreadToUnite};
     }
-    msecs getMsecFromPxPosition(int xPos, int xShift = 0){
-        xPos += xShift;
-        return msecs(static_cast<int>((xPos * TimeInfo::msecsInhour.count()) / hourWidthInPx));
+
+    //mapping coords
+
+    int msecFromPx(int xPos){
+        return static_cast<int>((xPos * TimeInfo::msecsInhour.count()) / hourWidthInPx);
     }
-    int getPxPosFromMsec(msecs mark){
-        return mark.count() * (hourWidthInPx / TimeInfo::msecsInhour.count());
+    int pxPosFromMsec(msecs mark){
+        double pxInMsec = hourWidthInPx / TimeInfo::msecsInhour.count();
+        return mark.count() * pxInMsec - getMin()*pxInMsec;
     }
-    int getPxPosFromMsec(int mark){
-        double pxInMsecs = hourWidthInPx / TimeInfo::msecsInhour.count();
-        return mark * pxInMsecs;
+    int pxPosFromMsec(int mark){
+        double pxInMsec = hourWidthInPx / TimeInfo::msecsInhour.count();
+        return mark * pxInMsec - getMin()*pxInMsec;
     }
 
     std::atomic<int> rulerWidth{1000};
