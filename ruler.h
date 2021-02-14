@@ -102,18 +102,14 @@ private:
 
     void paint(QPainter *p, const QStyleOptionGraphicsItem *, QWidget *) override {
         //  p->save();
-        //  p->save();
         QPointF curPos = scenePos();
         int viewWidth = scene()->views().first()->width();
-        int rulerWidth = viewWidth;//- m_ri.leftMargin - m_ri.rightMargin;
+        int rulerWidth = viewWidth;
         float resizeSinceLastRender = rulerWidth / static_cast<float>(m_ta->rulerWidth);
         m_ta->stepInPx = m_ta->stepInPx * resizeSinceLastRender;
         m_ta->hourWidthInPx = m_ta->hourWidthInPx * resizeSinceLastRender;
         m_ta->dayWidthInPx = m_ta->hourWidthInPx * 24;
-        m_ta->rulerWidth.store(rulerWidth); //std::rel_ack?
-
-        //recalc curHourWidth
-        //  m_ta->hourWidthInPx =(rulerWidth/(-23 * m_ta->zoomRatio + 47));
+        m_ta->rulerWidth.store(rulerWidth);
 
         //drawing ruler
         p->setPen(m_plt.rulerBackground);
@@ -129,12 +125,6 @@ private:
         int min{m_ta->getMin()};
         int max{m_ta->getMax()};
 
-
-
-        // int msecInPx{static_cast<int>(m_ta->getVisibleDuration().count()/ rulerWidth)};
-
-
-        //        float i = m_ta->offsetInPx + m_ta->dragOffset + m_ta->dragOffsetCur;
         auto rx = curPos.rx();
 
         static const int msecIn10h = (std::chrono::duration_cast<msecs>(std::chrono::hours(10))).count();
@@ -165,9 +155,6 @@ private:
 
     virtual void wheelEvent(QGraphicsSceneWheelEvent *event) override{
         int delta = event->delta();
-        static const float wheelScrollRatio = 0.0005;
-        //  static const int targetaoef = 1;
-
 
         float targetZoomInRatio{1.05};
         float targetZoomOutRatio{0.95};

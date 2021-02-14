@@ -37,7 +37,6 @@ private:
 struct MultiBookmark: public Bookmark{
     MultiBookmark(){}
     MultiBookmark(const int& start, const int& end): Bookmark(start, end), count(1){
-
     }
     QVector<int> forSeek;
     void reset(const int& start, const int& end, const QString &rname){

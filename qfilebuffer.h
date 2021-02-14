@@ -33,9 +33,7 @@ public:
     std::optional<msecs> getLowestKey(msecs val, const QList<msecs>& keys){
         auto const it = std::lower_bound(keys.begin(), keys.end(), val);
         if (it == keys.end()) { return std::nullopt; }
-
         return *it;
-
     }
 
 };

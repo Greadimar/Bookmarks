@@ -6,7 +6,6 @@ struct TimeInfo{
     const static msecs msecsInDay;
     const static msecs msecsIn3hours;
     const static msecs msecsInhour;
-
 };
 
 class TimeAxis: public QObject{
@@ -47,8 +46,8 @@ public:
     msecs getVisibleDuration(){
         return msecs(max.load(std::memory_order_relaxed)) - msecs(min.load(std::memory_order_relaxed));
     }
-    msecs getUnitingSpread(){
-        return msecs{(TimeInfo::msecsInDay.count()/rulerWidth.load())*pxSpreadToUnite};
+    int getUnitingSpread(){
+        return (TimeInfo::msecsInDay.count()/rulerWidth.load())*pxSpreadToUnite;
     }
 
     //mapping coords
