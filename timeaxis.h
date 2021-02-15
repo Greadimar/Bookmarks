@@ -47,7 +47,7 @@ public:
         return msecs(max.load(std::memory_order_relaxed)) - msecs(min.load(std::memory_order_relaxed));
     }
     int getUnitingSpread(){
-        return (TimeInfo::msecsInDay.count()/rulerWidth.load())*pxSpreadToUnite;
+        return ((getMax() - getMin())/rulerWidth.load())*pxSpreadToUnite;
     }
 
     //mapping coords

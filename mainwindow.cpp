@@ -30,11 +30,11 @@ MainWindow::MainWindow(QWidget *parent)
     connect(bookmngrThr, &QThread::finished, bookmngrThr, &QObject::deleteLater);
     bookmarkMngr->moveToThread(bookmngrThr);
     bookmngrThr->start();
-    QMetaObject::invokeMethod(bookmarkMngr, "start");
+  //  QMetaObject::invokeMethod(bookmarkMngr, "start");
    // bookmarkMngr.start();
 
     //QMetaObject::invokeMethod(bookmarkMngr.data(), "start");
-    connect(&bookmarkMngr->getFileWorker(), &QFileBuffer::sendPrg, this, [=](int val){
+    connect(bookmarkMngr, &BookmarkManager::sendPrg, this, [=](int val){
         ui->progressBar->setValue(val);
     });
 
@@ -62,7 +62,7 @@ MainWindow::MainWindow(QWidget *parent)
         QLabel* lb = new QLabel("Количество: ");
         QPushButton* pb = new QPushButton("Сгенерировать");
         connect(pb, &QPushButton::clicked , this , [=](){
-            bookmarkMngr->isRunning.store(false);
+            bookmarkMngr->stop();
             QMetaObject::invokeMethod(bookmarkMngr.data(), "generateBookmarks", Q_ARG(int, sb->value()));
         });
 
@@ -74,7 +74,15 @@ MainWindow::MainWindow(QWidget *parent)
         d.exec();
 
 
-       // bookmarkMngr->start();
+    });
+
+    auto qAction = new QAction("Запрос");
+    this->menuBar()->addAction(qAction);
+    connect(qAction, &QAction::triggered, this, [=](){
+       bookmarkMngr->stop();
+       QMetaObject::invokeMethod(bookmarkMngr.data(), "testGet");
+
+
     });
 
   //  menu->addA

@@ -6,7 +6,7 @@
 #include <variant>
 #include <deque>
 class BookmarkPainter;
-constexpr int namelength = 64;
+constexpr int namelength = 6;
 struct Bookmark
 {
 
@@ -27,7 +27,7 @@ struct Bookmark
     }
     int start{0};
     int end{10000};
-    QString name{"some name"};
+    QString name{""};
 
 private:
 
@@ -36,9 +36,10 @@ private:
 
 struct MultiBookmark: public Bookmark{
     MultiBookmark(){}
+    MultiBookmark(const Bookmark& bk): Bookmark(bk.start, bk.end, bk.name), count(1){}
     MultiBookmark(const int& start, const int& end): Bookmark(start, end), count(1){
     }
-    QVector<int> forSeek;
+    //QVector<int> forSeek;
     void reset(const int& start, const int& end, const QString &rname){
         this->start = start;
         this->end = end;

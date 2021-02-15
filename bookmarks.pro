@@ -21,11 +21,11 @@ SOURCES += \
   #  filemap.cpp \
     main.cpp \
     mainwindow.cpp \
-    qfilebuffer.cpp \
+  #  qfilebuffer.cpp \
     ruler.cpp \
     rulerview.cpp \
-    timeaxis.cpp
-   # sqliteworker.cpp \
+    timeaxis.cpp \
+    sqliteworker.cpp \
 
 HEADERS += \
     axisinfo.h \
@@ -34,7 +34,7 @@ HEADERS += \
     common.h \
   #  filemap.h \
     mainwindow.h \
-    qfilebuffer.h \
+  #  qfilebuffer.h \
     ruler.h \
     rulerview.h \
     sqliteworker.h \

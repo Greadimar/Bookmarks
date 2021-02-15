@@ -91,55 +91,55 @@ void QFileBuffer::generateFileB(QSharedPointer<TimeAxis> tc, const std::atomic_b
 
 QVector<MultiBookmark> QFileBuffer::getBookmarks(msecs start, msecs end, QSharedPointer<TimeAxis> ta)
 {
-    auto closest = getLowestKey(start, navMap.keys());
-    if (!closest){
-       // qDebug() << "no big key";
-        return {};};
-    const auto& chunkMap = navMap.value(closest.value());
-    auto closestInner = getLowestKey(start, chunkMap.keys());
-    if (!closestInner){
-        //qDebug() << "no little key";
-        return {};
-    };
-    int row = chunkMap.value(closestInner.value());
-    file.seek(row);
-   // QVector<Bookmark> singleBkVec;
-   // QVector<MultiBookmark> multiBkVec;
-    QVector<MultiBookmark> mbVec;
-    MultiBookmark* lastMbk;
-    //int prevStart, prevEnd; QString prevName;
-    int curStart, curEnd; QString name;
-    ds >> curStart >> curEnd >> name;
-    int endCount = end.count();
-    MultiBookmark mbk(curStart, curEnd);
-    const static int toSkip = sizeof (int) + 64 * sizeof (char);
-    int maxMbkWidth = ta->getUnitingSpread().count();
-    int curMbkEnd = mbk.start + maxMbkWidth;
-    while(true){
-        ds >> curStart >> curEnd >> name;
-        if (curStart > end.count() || ds.atEnd()){
-            mbVec.append(mbk);
-            break;
-        }
-        if (curStart <= curMbkEnd){
-            mbk.count++;
-        }
-        else{
-//            if (mbk.count == 1){
-                mbVec.append(mbk);
-                mbk.reset(curStart, curEnd, name);
-                curMbkEnd = curStart + maxMbkWidth;
-//            }
-//            else{
+//    auto closest = getLowestKey(start, navMap.keys());
+//    if (!closest){
+//       // qDebug() << "no big key";
+//        return {};};
+//    const auto& chunkMap = navMap.value(closest.value());
+//    auto closestInner = getLowestKey(start, chunkMap.keys());
+//    if (!closestInner){
+//        //qDebug() << "no little key";
+//        return {};
+//    };
+//    int row = chunkMap.value(closestInner.value());
+//    file.seek(row);
+//   // QVector<Bookmark> singleBkVec;
+//   // QVector<MultiBookmark> multiBkVec;
+//    QVector<MultiBookmark> mbVec;
+//    MultiBookmark* lastMbk;
+//    //int prevStart, prevEnd; QString prevName;
+//    int curStart, curEnd; QString name;
+//    ds >> curStart >> curEnd >> name;
+//    int endCount = end.count();
+//    MultiBookmark mbk(curStart, curEnd);
+//    const static int toSkip = sizeof (int) + 64 * sizeof (char);
+//    int maxMbkWidth = ta->getUnitingSpread().count();
+//    int curMbkEnd = mbk.start + maxMbkWidth;
+//    while(true){
+//        ds >> curStart >> curEnd >> name;
+//        if (curStart > end.count() || ds.atEnd()){
+//            mbVec.append(mbk);
+//            break;
+//        }
+//        if (curStart <= curMbkEnd){
+//            mbk.count++;
+//        }
+//        else{
+////            if (mbk.count == 1){
 //                mbVec.append(mbk);
-//                ds >> curEnd >> name;
 //                mbk.reset(curStart, curEnd, name);
 //                curMbkEnd = curStart + maxMbkWidth;
-//            }
-        }
-    }
+////            }
+////            else{
+////                mbVec.append(mbk);
+////                ds >> curEnd >> name;
+////                mbk.reset(curStart, curEnd, name);
+////                curMbkEnd = curStart + maxMbkWidth;
+////            }
+//        }
+//    }
 
-    return mbVec;
+//    return mbVec;
 
 }
 
@@ -167,7 +167,7 @@ QVector<std::variant<Bookmark, MultiBookmark>> QFileBuffer::getBookmarksVar(msec
     int endCount = end.count();
     MultiBookmark mbk(curStart, curEnd);
     const static int toSkip = sizeof (int) + 64 * sizeof (char);
-    int maxMbkWidth = ta->getUnitingSpread().count();
+    int maxMbkWidth = ta->getUnitingSpread();
     int curMbkEnd = mbk.start + maxMbkWidth;
     while(true){
         ds >> curStart >> curEnd >> name;

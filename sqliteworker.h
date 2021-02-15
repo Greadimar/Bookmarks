@@ -5,7 +5,7 @@
 #include "timeaxis.h"
 #include <optional>
 #include <QObject>
-
+#include <QTime>
 #include <queue>
 //constexpr bool dbgSqliteWorker = false;
 //#define DBG if constexpr (dbgSqliteWorker) qDebug
@@ -17,10 +17,12 @@ public:
         dbOnHard,
         dbOnRAM,
     };
-    SqliteWorker(std::atomic_bool& isRunning): isRunning(isRunning){};
+    SqliteWorker(std::atomic_bool& isRunning, QObject* parent): QObject(parent), isRunning(isRunning){
+        srand(QTime::currentTime().msecsSinceStartOfDay());
+    };
     void startDb();
     void closeDb();
-    void generateBookmarks(int count, const QSharedPointer<TimeAxis> &tc);
+    bool generateBookmarks(const QSharedPointer<TimeAxis> &tc, int count);
 
     QVector<MultiBookmark> getBookmarks(const int &start, const int &end, const int mbkDuration);
 signals:
@@ -37,10 +39,10 @@ private:
     };
     char tableName[16] = "bookmarksTable";          //sorted table
     char indexTableName[16] = "indexTable";
-    QMap<msecs, QMap<msecs, int>> navMap;
 
-    SessionStatus sessionStatus{SessionStatus::idle};
-
+    int curCount{0};
+    int curStart{0};
+    int curEnd{0};
 
     sqlite3* dbSqlite{nullptr};
     void initDb();
@@ -59,18 +61,24 @@ private:
     void createTables();
 
 
-    std::optional<MultiBookmark> getBookmarkZone(const int &mark, int &next);
-        std::optional<MultiBookmark> getBookmarkZoneSmart(const int &mark, int &next);
+   // std::optional<MultiBookmark> getBookmarkZone(const int &mark, int &next);
+        std::optional<MultiBookmark> getBookmarkZoneSmart(const int &mark, int &next, const int duration);
     int getRowByStartMark(const int& mark);
         int getRowByEndMark(const int& mark);
+    std::optional<Bookmark> getBookmarkByRow(const int row);
     bool checkPrepareReturn(const int& rc);
 
-//    int getIndexedRow(const int mark);
-//    std::optional<msecs> getLowestKey(msecs val, const QList<msecs>& keys);
-    /*  static int idGetter(void *, int, char **, char **);*/
-
-//    using CallbackDataGetter = int (*)(void*, int, char **, char **);
-//    QString addInvCommas(const QString& str);
+    template<int size> void generateStr(char* str){
+        static const char set[] =
+        "0123456789"
+      //  "!@#$%^&*"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+        static const int len = sizeof(set) - 1;
+        for (int i = 0; i < size; i++){
+            str[i] = set[rand() % len];
+        }
+    }
 
 
 };
