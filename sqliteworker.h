@@ -62,7 +62,8 @@ private:
 
 
    // std::optional<MultiBookmark> getBookmarkZone(const int &mark, int &next);
-        std::optional<MultiBookmark> getBookmarkZoneSmart(const int &mark, int &next, const int duration);
+    std::optional<MultiBookmark> getBookmarkZone(const int &mark, int &next, const int duration);
+        std::optional<MultiBookmark> getTargetBookmarkZone(const Bookmark& bk, const int duration);
     int getRowByStartMark(const int& mark);
         int getRowByEndMark(const int& mark);
     std::optional<Bookmark> getBookmarkByRow(const int row);

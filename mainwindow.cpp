@@ -61,16 +61,17 @@ MainWindow::MainWindow(QWidget *parent)
         sb->setRange(1, 1000000000);
         QLabel* lb = new QLabel("Количество: ");
         QPushButton* pb = new QPushButton("Сгенерировать");
-        connect(pb, &QPushButton::clicked , this , [=](){
+        connect(pb, &QPushButton::clicked , this , [=, &d](){
             bookmarkMngr->stop();
             QMetaObject::invokeMethod(bookmarkMngr.data(), "generateBookmarks", Q_ARG(int, sb->value()));
+            d.close();
+
         });
 
         lo->addWidget(lb);
         lo->addWidget(sb);
         lo->addWidget(pb);
         d.setLayout(lo);
-
         d.exec();
 
 

@@ -6,7 +6,7 @@
 #include <variant>
 #include <deque>
 class BookmarkPainter;
-constexpr int namelength = 6;
+constexpr int namelength = 16;
 struct Bookmark
 {
 

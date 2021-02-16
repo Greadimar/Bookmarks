@@ -24,10 +24,9 @@ bool BookmarkManager::testGet()
 bool BookmarkManager::generateBookmarks(int count){
    // if (isRunning.load()) return false;
 
-     sqlworker->startDb();
+    sqlworker->startDb();
     auto startCollecting = std::chrono::system_clock::now();
-    //sqlworker->generateBookmarks(count, m_timeconvertor);
-    //sqlworker->generateBookmarks(m_ta, count);
+    sqlworker->generateBookmarks(m_ta, count);
 
 
     auto timeToCollect = std::chrono::system_clock::now() - startCollecting;
