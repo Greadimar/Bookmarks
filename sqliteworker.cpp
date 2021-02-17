@@ -42,25 +42,25 @@ bool SqliteWorker::generateBookmarks(const QSharedPointer<TimeAxis>& ta, int cou
     createTable(tableName);
 
     auto startGen = std::chrono::system_clock::now();
-  //  float chunkRatio = count/1000;
+    //  float chunkRatio = count/1000;
     //if (count == 100000000) chunkRatio = count / 10000;
-  //  if (chunkRatio == 0) chunkRatio++;
+    //  if (chunkRatio == 0) chunkRatio++;
     float chunkRatio = 24.;
     qDebug() << "count, chunkRaio" << count << chunkRatio;
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<int> startDis(0, TimeInfo::msecsInDay.count());
     //   std::uniform_int_distribution<int> durationDis(0, tc->msecsIn3hours.count());
-   // const int msecsInGenerateChunk = TimeInfo::msecsInDay.count() / chunkRatio;
+    // const int msecsInGenerateChunk = TimeInfo::msecsInDay.count() / chunkRatio;
 
     int it = 0;
-     int chunksToGenerate = static_cast<int>(count / chunkRatio);
+    int chunksToGenerate = static_cast<int>(count / chunkRatio);
     if (chunksToGenerate == 0) chunksToGenerate++;
     const int msecsInGenerateChunk =  static_cast<int>(TimeInfo::msecsInDay.count() / chunksToGenerate);
     const int maxBkDuration = 2*TimeInfo::msecsInDay.count() / chunkRatio;
     const int bksInChunk = count/chunksToGenerate;
-//    int curStartMsecs = 0;
-//    int curDurationMsecs = msecsInGenerateChunk;
+    //    int curStartMsecs = 0;
+    //    int curDurationMsecs = msecsInGenerateChunk;
     int chunksIt = 0;
     int k = 0;
     int curPrg = 0;
@@ -78,9 +78,9 @@ bool SqliteWorker::generateBookmarks(const QSharedPointer<TimeAxis>& ta, int cou
 
         for (; it <  curChunkEnd; it++){
             int&& start = startDis(gen);
-//            if (start < 0){
-//                qDebug() << "smth w w";
-//            }
+            //            if (start < 0){
+            //                qDebug() << "smth w w";
+            //            }
             std::uniform_int_distribution<int> curEndDis(start, start + maxBkDuration);
             vec.append(Bookmark(start, curEndDis(gen)));
         }
@@ -186,7 +186,7 @@ void SqliteWorker::createIndexTable()
 
 }
 
-QVector<MultiBookmark> SqliteWorker::getBookmarks(const int& start, const int& end, const int mbkDuration)
+QVector<MultiBookmark> SqliteWorker::getMultiBookmarks(const int& start, const int& end, const int mbkDuration)
 {
     curStart = start;
     curEnd = end;
@@ -203,6 +203,33 @@ QVector<MultiBookmark> SqliteWorker::getBookmarks(const int& start, const int& e
     }
     return vec;
 
+}
+
+QVector<Bookmark> SqliteWorker::getBookmarks(const int &start, const int &end)
+{
+    int indexStartRow = getRowByStartMark(start);
+    int indexEndRow = getRowByEndMark(end);
+    char quSelect[255];
+    sqlite3_stmt* stmt = nullptr;
+
+    QVector<Bookmark> vec;
+
+    snprintf(quSelect, 255, "SELECT * FROM %s WHERE (ID >= %d AND ID < %d) LIMIT 17", tableName, indexStartRow, indexEndRow);
+    int rc = sqlite3_prepare_v2(dbSqlite, quSelect, 255, &stmt, nullptr);
+    if (!checkPrepareReturn(rc)){
+        sqlite3_finalize(stmt);
+        return vec;
+    }
+    //int c = stmt->count
+    while (sqlite3_step(stmt) == SQLITE_ROW){
+        const int startTime = sqlite3_column_int(stmt, static_cast<int>(BookmarkCols::START_TIME));
+        const int endTime = sqlite3_column_int(stmt, static_cast<int>(BookmarkCols::END_TIME));
+        QString name = QString::fromUtf8(reinterpret_cast<const char*>(sqlite3_column_text(stmt, static_cast<int>(BookmarkCols::NAME))));
+        Bookmark bk(startTime, endTime, name);
+        vec << bk;
+    }
+    sqlite3_finalize(stmt);
+    return vec;
 }
 /*
 std::optional<MultiBookmark> SqliteWorker::getBookmarkZone(const int& mark, int& next){
@@ -276,10 +303,10 @@ std::optional<MultiBookmark> SqliteWorker::getBookmarkZone(const int& mark, int&
     if (!bk.has_value()) return std::nullopt;
 
     else{
-            auto targetMbk = getTargetBookmarkZone(bk.value(), duration);
-            if (!targetMbk.has_value()) return std::nullopt;
-            next = targetMbk->start + duration;
-            return targetMbk;
+        auto targetMbk = getTargetBookmarkZone(bk.value(), duration);
+        if (!targetMbk.has_value()) return std::nullopt;
+        next = targetMbk->start + duration;
+        return targetMbk;
 
     }
 }
@@ -348,7 +375,6 @@ int SqliteWorker::getRowByEndMark(const int &mark)
 std::optional<Bookmark> SqliteWorker::getBookmarkByRow(const int row)
 {
     char quSelect[255];
-
     sqlite3_stmt* stmt = nullptr;
     snprintf(quSelect, 255, "SELECT * FROM %s WHERE ID = %d", tableName, row);
     int rc = sqlite3_prepare_v2(dbSqlite, quSelect, 255, &stmt, nullptr);

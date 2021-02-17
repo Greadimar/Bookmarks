@@ -19,6 +19,7 @@ SOURCES += \
     bookmark.cpp \
     bookmarkmanager.cpp \
   #  filemap.cpp \
+    extratablemodel.cpp \
     main.cpp \
     mainwindow.cpp \
   #  qfilebuffer.cpp \
@@ -33,6 +34,7 @@ HEADERS += \
     bookmarkmanager.h \
     common.h \
   #  filemap.h \
+    extratablemodel.h \
     mainwindow.h \
   #  qfilebuffer.h \
     ruler.h \

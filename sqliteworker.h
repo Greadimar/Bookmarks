@@ -24,7 +24,8 @@ public:
     void closeDb();
     bool generateBookmarks(const QSharedPointer<TimeAxis> &tc, int count);
 
-    QVector<MultiBookmark> getBookmarks(const int &start, const int &end, const int mbkDuration);
+    QVector<MultiBookmark> getMultiBookmarks(const int &start, const int &end, const int mbkDuration);
+    QVector<Bookmark> getBookmarks(const int& start, const int & end);
 signals:
     void sendPrg(int);
     void serviceMsg(QString msg);

@@ -14,7 +14,7 @@ bool BookmarkManager::testGet()
 {
     auto startCollecting = std::chrono::system_clock::now();
     //sqlworker->generateBookmarks(count, m_timeconvertor);
-    auto bks = sqlworker->getBookmarks(m_ta->getMin(), m_ta->getMax(), m_ta->getUnitingSpread());
+    auto bks = sqlworker->getMultiBookmarks(m_ta->getMin(), m_ta->getMax(), m_ta->getUnitingSpread());
 
 
     auto timeToCollect = std::chrono::system_clock::now() - startCollecting;
@@ -45,7 +45,8 @@ bool BookmarkManager::generateBookmarks(int count){
     //        }
     //  collectBookmarksForDisplay();
     //  mVec.squeeze();
-     stale = false;
+     bufferIsReady = false;
+     tableBufferIsReady = false;
      start();
     return true;
 }

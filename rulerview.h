@@ -13,6 +13,8 @@
 #include "bookmarkmanager.h"
 #include "timeaxis.h"
 #include <QPointer>
+#include <QGraphicsProxyWidget>
+#include <QTableView>
 namespace Ui {
 class SceneWt;
 }
@@ -114,7 +116,7 @@ class RuleView : public QGraphicsView
 
 public:
     explicit RuleView(QPointer<BookmarkManager> mngr, QSharedPointer<TimeAxis> timea,
-                     QWidget *parent = nullptr): m_bkmngr(mngr), m_ta(timea){
+                     QWidget *parent = nullptr): QGraphicsView(parent), m_bkmngr(mngr), m_ta(timea){
         setRenderHints(QPainter::SmoothPixmapTransform| QPainter::TextAntialiasing);
        // setCacheMode(QGraphicsView::CacheNone); // change ??
         this->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
@@ -147,10 +149,13 @@ private:
     //
     QPointer<BookmarkManager> m_bkmngr;
     QSharedPointer<TimeAxis> m_ta;
+    QTableView* extraTable;
+    QGraphicsProxyWidget* proxyWtTable;
 
     //items
     Ruler* m_ruler;
     BookmarksLine* m_line;
+
 
     //operating structs
 
@@ -181,17 +186,22 @@ private:
         auto&& nextRender = renderInfo.renderStep - sinceLastRender;
         renderInfo.lastRender = cur;
         QTimer::singleShot(std::chrono::duration_cast<msecs>(nextRender), this, [=](){
-            m_ruler->update();
-            m_line->update();
+            toRender();
             renderTimer();
         });
     }
 private:
+    void toRender(){
+        m_ruler->update();
+        m_line->update();
+        extraTable->setVisible(m_line->getMouseOnMultiBk());
+        proxyWtTable->setPos(m_line->getPosForExtraTable());
+    }
     void resizeEvent(QResizeEvent *event) override{
-        QTimer::singleShot(100, this, [=](){
-    //       initElements();
-            qDebug() << "w" << scene()->width();
-        });
+//        QTimer::singleShot(100, this, [=](){
+//    //       initElements();
+//            qDebug() << "w" << scene()->width();
+//        });
         QGraphicsView::resizeEvent(event);
     }
 };

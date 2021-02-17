@@ -10,8 +10,8 @@
 #include <atomic>
 #include <QMutex>
 
-using BookmarkVec = QVector<MultiBookmark>;
-using ShpBookmarkVec = std::shared_ptr<BookmarkVec>;
+using MBookmarkVec = QVector<MultiBookmark>;
+using BookmarkVec = QVector<Bookmark>;
 class BookmarkManager: public QObject
 {
     Q_OBJECT
@@ -24,7 +24,8 @@ public:
     }
     void stop(){
         isRunning.store(false);
-        stale.store(false);
+        bufferIsReady.store(false);
+        tableBufferIsReady.store(false);
     }
     Q_INVOKABLE bool testGet();
     Q_INVOKABLE bool generateBookmarks(int count);
@@ -45,25 +46,44 @@ public:
 
     // std::atomic<BookmarkVec*> readyBuffer = &bookmarksBuffer[1];
     QVector<MultiBookmark>& getToDisplay(){
-        if (stale)
+        if (bufferIsReady)
             displayBuffer = readyBuffer.exchange(displayBuffer);
         auto& res = *displayBuffer;
-        stale = false;
+        bufferIsReady = false;
+        return res;
+    }
+    QVector<Bookmark>& getTableToDisplay(){
+        if (tableBufferIsReady)
+            displayTableBuffer = readyTableBuffer.exchange(displayTableBuffer);
+        auto& res = *displayTableBuffer;
+        tableBufferIsReady = false;
         return res;
     }
 
-    std::atomic_bool displayBufIsBusy{false};
-    std::atomic_bool stale{false};
+
     QMutex mutex;
 signals:
     void sendPrg(int val);
     void serviceMsg(QString msg);
 private:
     QSharedPointer<TimeAxis> m_ta;
-    BookmarkVec bookmarksBuffer[3];
-    std::atomic<BookmarkVec*> displayBuffer = &bookmarksBuffer[2];
-    std::atomic<BookmarkVec*> readyBuffer = &bookmarksBuffer[1];
-    std::atomic<BookmarkVec*> computingBuffer = &bookmarksBuffer[0];
+
+    std::atomic<int> extraTableMin;
+    std::atomic<int> extraTableMax;
+
+    MBookmarkVec bookmarksBuffer[3];
+    BookmarkVec extraTableBuffer[3];
+    std::atomic_bool bufferIsReady{false};
+    std::atomic_bool tableBufferIsReady{false};
+
+    std::atomic<MBookmarkVec*> displayBuffer = &bookmarksBuffer[2];
+    std::atomic<MBookmarkVec*> readyBuffer = &bookmarksBuffer[1];
+    std::atomic<MBookmarkVec*> computingBuffer = &bookmarksBuffer[0];
+
+    std::atomic<BookmarkVec*> displayTableBuffer = &extraTableBuffer[2];
+    std::atomic<BookmarkVec*> readyTableBuffer = &extraTableBuffer[1];
+    std::atomic<BookmarkVec*> computingTableBuffer = &extraTableBuffer[0];
+
     std::vector<Bookmark> testList;
 
     QVector<QSharedPointer<MultiBookmark>> mVec;
@@ -74,21 +94,31 @@ private:
     //  int curRulerWidth{0};
     void collect(){
         // qDebug() << "recollect";
-        auto startCollecting = std::chrono::system_clock::now();
+       // auto startCollecting = std::chrono::system_clock::now();
         int start = m_ta->getMin();
         int end = m_ta->getMax();
         int duration = m_ta->getUnitingSpread();
 
-        *computingBuffer = sqlworker->getBookmarks(start, end, duration);
+        *computingBuffer = sqlworker->getMultiBookmarks(start, end, duration);
         //while (stale.exchange(true));
-        if (!stale){
+        if (!bufferIsReady){
             computingBuffer = readyBuffer.exchange(computingBuffer);
-            stale.store(true);
+            bufferIsReady.store(true);
         }
-
-
-        auto timeToCollect = std::chrono::system_clock::now() - startCollecting;
+       // auto timeToCollect = std::chrono::system_clock::now() - startCollecting;
         //    qDebug() << "timeToReCollectVec" << timeToCollect.count();
+    }
+
+    void collectTableBookmarks(){
+        int start = extraTableMin;
+        int end = extraTableMax;
+
+        *computingTableBuffer = sqlworker->getBookmarks(start, end);
+        //while (stale.exchange(true));
+        if (!tableBufferIsReady){
+            computingTableBuffer = readyTableBuffer.exchange(computingTableBuffer);
+            tableBufferIsReady.store(true);
+        }
     }
 
 
