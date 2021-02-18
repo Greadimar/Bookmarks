@@ -22,29 +22,16 @@ bool BookmarkManager::testGet()
 }
 
 bool BookmarkManager::generateBookmarks(int count){
-   // if (isRunning.load()) return false;
-
-    sqlworker->startDb();
+     sqlworker->startDb();
     auto startCollecting = std::chrono::system_clock::now();
     sqlworker->generateBookmarks(m_ta, count);
 
 
     auto timeToCollect = std::chrono::system_clock::now() - startCollecting;
 
-   // collect();
-    qDebug() << "timeTognrt" << timeToCollect.count();
-    //        mVec.resize(bookmarks.size());
-    //         msecs unitingSpread = m_timeconvertor->getUnitingSpread();
-    //        for (size_t i = 0; i < bookmarks.size(); i++){
-    //            const Bookmark& cur = bookmarks[i];
-    //            msecs curMultiFinish = cur.start + unitingSpread;
-    //            mVec[i] = MultiBookmark(cur, curMultiFinish);
-    //            mVec[i].adjustStart();
-    //            mVec[i].adjustEnd(unitingSpread);
 
-    //        }
-    //  collectBookmarksForDisplay();
-    //  mVec.squeeze();
+     qDebug() << "timeTognrt" << timeToCollect.count();
+
      bufferIsReady = false;
      tableBufferIsReady = false;
      start();

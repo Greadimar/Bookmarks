@@ -214,7 +214,7 @@ QVector<Bookmark> SqliteWorker::getBookmarks(const int &start, const int &end)
 
     QVector<Bookmark> vec;
 
-    snprintf(quSelect, 255, "SELECT * FROM %s WHERE (ID >= %d AND ID < %d) LIMIT 17", tableName, indexStartRow, indexEndRow);
+    snprintf(quSelect, 255, "SELECT * FROM %s WHERE (ID >= %d AND ID <= %d) LIMIT 17", tableName, indexStartRow, indexEndRow);
     int rc = sqlite3_prepare_v2(dbSqlite, quSelect, 255, &stmt, nullptr);
     if (!checkPrepareReturn(rc)){
         sqlite3_finalize(stmt);

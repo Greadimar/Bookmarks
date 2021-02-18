@@ -3,6 +3,7 @@
 #include "rulerview.h"
 #include <QMainWindow>
 #include <QPointer>
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE

@@ -5,6 +5,7 @@
 #include <QPointer>
 #include <QAbstractTableModel>
 #include <QTimer>
+#include <ctime>
 const int displayLimit{16};
 
 class ExtraTableModel: public QAbstractTableModel
@@ -38,6 +39,11 @@ private:
     QTimer* timer;
 
     void updateModel();
+    static QString timeFromMsec(int msec){
+        QTime time(0,0);
+        time = time.addMSecs(msec);
+        return time.toString("hh:mm:ss:zzz");
+    }
 };
 
 

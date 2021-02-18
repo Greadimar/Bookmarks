@@ -18,35 +18,9 @@
 #include <variant>
 #include <QPropertyAnimation>
 #include <QTimer>
-struct Palette{
-    QColor rulerBorders{"#ed9121"};
-    QColor rulerLines{Qt::black};
-    QColor rulerBackground{"#FEFED3"};
-    QColor labels{Qt::black};
-    QColor singleBookmarksBorders{"#024064"};
-    QColor singleBookmarksBackground{"#3CB3C0"};
-    QColor multiBookmarksBorders{"#37782C"};
-    QColor multiBookmarksBackground{"#64BB6A"};
-};
+#include "palette.h"
+#include "renderinfo.h"
 
-
-
-
-struct RenderInfo{
-
-    int rulerTopY{0};
-    int rulerBottomY{100};
-    const int bookmarksTopMargin = 10;
-    const int leftMargin = 5;
-    const int rightMargin = 5;
-    int bookmarksTopY{10};
-    int bookmarksBottomY{100};
-    int bookmarksHeight = 90;
-
-    //render info
-    const msecs renderStep{33}; //~30fps
-    std::chrono::system_clock::time_point lastRender;
-};
 
 class Ruler: public QGraphicsObject{
 public:
@@ -100,6 +74,7 @@ private:
         if (event->button() == Qt::MidButton){
 
             m_ta->dragOffset = 0;
+            m_ta->zoomOffsetMsecs = 0;
             m_ta->dayWidthInPx = m_ta->rulerWidth;
             m_ta->hourWidthInPx = m_ta->dayWidthInPx / 24;
             m_ta->step = TimeInfo::msecsInhour.count();
@@ -137,83 +112,5 @@ private:
     }
 };
 
-class BookmarksLine: public QGraphicsItem{
-public:
-    BookmarksLine(const Palette& plt, QPointer<BookmarkManager> bmkMngr, RenderInfo& ri, const QSharedPointer<TimeAxis>& t);
-    bool getMouseOnMultiBk() const;
-
-    QPointF getPosForExtraTable() const;
-
-private:
-    const Palette& m_plt;
-    QPointer<BookmarkManager> m_bmkMngr;
-    const RenderInfo& m_ri;
-    QSharedPointer<TimeAxis> m_ta;
-    QMap<int, MultiBookmark> curBkMap;
-    QFont font{"Times", 10};
-    const int multiBoookmarkWidth = 100;
-    const int borderWidth = 2;
-
-    QPointF curMousePos{0,0};
-    QPointF posForExtraTable{0, 0};
-    bool mouseOnMultiBk{false};
-
-    QRectF boundingRect() const override {
-        return QRectF{QPointF{0, static_cast<qreal>(m_ri.rulerBottomY)},
-        QPointF{static_cast<qreal>(m_ta->rulerWidth), static_cast<float>(m_ri.bookmarksHeight)}};
-
-    }
-
-    void paint(QPainter *p, const QStyleOptionGraphicsItem *st, QWidget *) override;
-
-
-    void paintMbk(const MultiBookmark& mb, QPainter* p, const QStyleOptionGraphicsItem *st);
-
-    void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override{
-         curMousePos = mapToScene(event->pos());
-
-    }
-
-};
-
-class Scene: public QGraphicsScene
-{
-signals:
-
-public slots:
-
-public:
-    Scene(){};
-    int offset{0};
-    int zoom = 1;
-    //    void drawBackground(QPainter *painter, const QRectF &rect){
-    //           // painter->setPen(QColor(Qt::green));
-    //          //  painter->drawRect(rect);
-    //        }
-    //    virtual void resizeEvent(QResizeEvent* event)
-    //     {
-
-    //         int const maximumMM = event->size().height() * toMM();
-    //         QFontMetrics fm(font());
-    //         int w = fm.width(QString::number(maximumMM)) + 20;
-    //         if (w != event->size().width())
-    //         {
-    //             QSize const newSize(w, event->size().height());
-    //             sizeChanged(newSize);
-    //             return setFixedSize(newSize);
-    //         }
-    //         return QGraphicsScene::resizeEvent(event);
-    //     }
-    //    void setOffset(int value)
-    //    {
-    //        offset = value;
-    //        update();
-    //    }
-    //    static qreal toMM()
-    //    {
-    //        return 25.4 / qApp->desktop()->logicalDpiY();
-    //    }
-
-};
 
 #endif // SCENE_H

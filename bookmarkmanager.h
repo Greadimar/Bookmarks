@@ -17,6 +17,9 @@ class BookmarkManager: public QObject
     Q_OBJECT
 public:
     std::atomic_bool isRunning{false};
+    std::atomic<int> extraTableMin{0};
+    std::atomic<int> extraTableMax{0};
+    int tableRowShift{0};
 
     BookmarkManager(QSharedPointer<TimeAxis>& timeAxis);
     ~BookmarkManager(){
@@ -36,11 +39,11 @@ public:
             //           qDebug() << "comp";
             QThread::sleep(0);
             collect();
+            collectTableBookmarks();
         }
 
     }
-    std::atomic_bool toSwap{false};
-    std::vector<ShpBookmark> bookmarks;
+
 
     QFileBuffer& getFileWorker();
 
@@ -60,16 +63,11 @@ public:
         return res;
     }
 
-
-    QMutex mutex;
 signals:
     void sendPrg(int val);
     void serviceMsg(QString msg);
 private:
     QSharedPointer<TimeAxis> m_ta;
-
-    std::atomic<int> extraTableMin;
-    std::atomic<int> extraTableMax;
 
     MBookmarkVec bookmarksBuffer[3];
     BookmarkVec extraTableBuffer[3];
@@ -89,9 +87,7 @@ private:
     QVector<QSharedPointer<MultiBookmark>> mVec;
 
     SqliteWorker* sqlworker;
-    //   QFileBuffer m_fileworker;
 
-    //  int curRulerWidth{0};
     void collect(){
         // qDebug() << "recollect";
        // auto startCollecting = std::chrono::system_clock::now();
@@ -100,13 +96,10 @@ private:
         int duration = m_ta->getUnitingSpread();
 
         *computingBuffer = sqlworker->getMultiBookmarks(start, end, duration);
-        //while (stale.exchange(true));
         if (!bufferIsReady){
             computingBuffer = readyBuffer.exchange(computingBuffer);
             bufferIsReady.store(true);
         }
-       // auto timeToCollect = std::chrono::system_clock::now() - startCollecting;
-        //    qDebug() << "timeToReCollectVec" << timeToCollect.count();
     }
 
     void collectTableBookmarks(){
@@ -114,7 +107,6 @@ private:
         int end = extraTableMax;
 
         *computingTableBuffer = sqlworker->getBookmarks(start, end);
-        //while (stale.exchange(true));
         if (!tableBufferIsReady){
             computingTableBuffer = readyTableBuffer.exchange(computingTableBuffer);
             tableBufferIsReady.store(true);
