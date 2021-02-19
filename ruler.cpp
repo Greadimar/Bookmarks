@@ -130,7 +130,7 @@ void Ruler::zoomToCenter(float targetZoomRatio){
     auto targetDayWidth = m_ta->getDayWidthInPx() * targetZoomRatio;
     auto targetHourWidth = targetDayWidth/24;
     auto targetStepInPx = m_ta->getStepInPx() * targetZoomRatio;
-    float targetMousePosMsec = m_ta->msecFromPx(curMouseXPos);
+    float targetMousePosMsec = m_ta->msecFromPx(curMouseXPos, targetHourWidth);
     auto targetZoomOffset = curPosInMsecs - targetMousePosMsec;
     int targetMin = targetZoomOffset ;
     int targetMax = targetMin + m_ta->msecFromPx(m_ta->rulerWidth);

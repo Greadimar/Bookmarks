@@ -85,6 +85,9 @@ public:
     int msecFromPx(int xPos){
         return static_cast<int>((xPos * TimeInfo::msecsInhour.count()) / m_hourWidthInPx);
     }
+    int msecFromPx(int xPos, int customHourWidth){
+        return static_cast<int>((xPos * TimeInfo::msecsInhour.count()) / customHourWidth);
+    }
     int pxPosFromMsec(msecs mark){
         double pxInMsec = m_hourWidthInPx / TimeInfo::msecsInhour.count();
         return mark.count() * pxInMsec - getMin()*pxInMsec;
