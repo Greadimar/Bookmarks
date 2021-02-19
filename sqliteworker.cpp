@@ -36,7 +36,7 @@ void SqliteWorker::closeDb()
     sqlite3_close(dbSqlite);
 }
 
-bool SqliteWorker::generateBookmarks(const QSharedPointer<TimeAxis>& ta, int count){
+bool SqliteWorker::generateBookmarks(const QPointer<TimeAxis>& ta, int count){
     curCount = count;
     dropTable(tableName);
     createTable(tableName);

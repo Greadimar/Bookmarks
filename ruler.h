@@ -20,21 +20,33 @@
 #include <QTimer>
 #include "palette.h"
 #include "renderinfo.h"
-
+#include <QParallelAnimationGroup>
 
 class Ruler: public QGraphicsObject{
 public:
-    Ruler(const Palette& plt, RenderInfo& ri, const QSharedPointer<TimeAxis>& c);
+    Ruler(const Palette& plt, RenderInfo& ri, const QPointer<TimeAxis>& c);
 private:
     const Palette& m_plt;
     RenderInfo& m_ri;
+    enum class Animation{
+        noAnimation = 0,
+        simpleAnimation = 1,
+        animationWithInertion = 2
+    };
+    Animation animation{Animation::simpleAnimation};
 
 
-    QSharedPointer<TimeAxis> m_ta;
+    QPointer<TimeAxis> m_ta;
     QFont font{"Times", 10};
 
-    QPointer<QPropertyAnimation> curZoomAni;
-    QPointer<QPropertyAnimation> curOffsetAni;
+
+    int animationDuration{300};
+    QPropertyAnimation* aniZoomOffset;
+    QPropertyAnimation* aniCurOffset;
+    QPropertyAnimation* aniMin;
+    QPropertyAnimation* aniMax;
+    QPropertyAnimation* aniAxisInfo;
+    QParallelAnimationGroup* aniParGroup;
 
     //        QAnimationGroup* g = new QAnimationGroup();
 
@@ -54,11 +66,15 @@ private:
 
     void paint(QPainter *p, const QStyleOptionGraphicsItem *, QWidget *) override;
 
+    QPropertyAnimation* makeAnimation(QObject* obj, const QString& propValue);
+
+
+private: //events
     virtual void wheelEvent(QGraphicsSceneWheelEvent *event) override{
         int delta = event->delta();
 
-        float targetZoomInRatio{1.05};
-        float targetZoomOutRatio{0.95};
+        static const float targetZoomInRatio{1.05};
+        static const float targetZoomOutRatio{0.95};
 
         if (delta > 0)
             zoomToCenter(targetZoomInRatio);
@@ -73,15 +89,15 @@ private:
         mouseXPosOnPress = event->pos().rx();
         if (event->button() == Qt::MidButton){
 
-            m_ta->dragOffset = 0;
-            m_ta->zoomOffsetMsecs = 0;
-            m_ta->dayWidthInPx = m_ta->rulerWidth;
-            m_ta->hourWidthInPx = m_ta->dayWidthInPx / 24;
-            m_ta->step = TimeInfo::msecsInhour.count();
-            m_ta->stepInPx = m_ta->step * (m_ta->hourWidthInPx /static_cast<float>(TimeInfo::msecsInhour.count()));
+            auto hourw = static_cast<float>(m_ta->rulerWidth/24);
+            auto dayw = static_cast<float>(m_ta->rulerWidth);
 
+            AxisInfo ai{hourw, dayw, hourw, 0, 0};
+            m_ta->setAi(ai);
+
+            m_ta->step = TimeInfo::msecsInhour.count();
             m_ta->setMin(0);
-            m_ta->setMax(m_ta->msecFromPx(m_ta->dayWidthInPx));
+            m_ta->setMax(m_ta->msecFromPx(m_ta->getAi().dayWidthInPx));
 
         }
         if (event->button() == Qt::RightButton){
@@ -94,9 +110,10 @@ private:
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override{
        // qDebug() << "mv";
         curMouseXPos = event->pos().rx();
-        m_ta->dragOffsetCur = mouseXPosOnPress - curMouseXPos;
-
-        m_ta->setMin(m_ta->zoomOffsetMsecs + m_ta->msecFromPx(m_ta->dragOffset + m_ta->dragOffsetCur));
+        AxisInfo ai = m_ta->getAi();
+        ai.dragOffsetCur = mouseXPosOnPress - curMouseXPos;
+        m_ta->setAi(ai);
+        m_ta->setMin(m_ta->getZoomOffsetMsecs() + m_ta->msecFromPx(ai.dragOffset + ai.dragOffsetCur));
         m_ta->setMax(m_ta->getMin() + m_ta->msecFromPx(m_ta->rulerWidth));
 
     }
@@ -106,8 +123,13 @@ private:
     }
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override{
         event->accept();
-        m_ta->dragOffset += m_ta->dragOffsetCur;
-        m_ta->dragOffsetCur = 0;
+        AxisInfo ai = m_ta->getAi();
+        ai.dragOffset += ai.dragOffsetCur;
+        ai.dragOffsetCur = 0;
+        m_ta->setAi(ai);
+
+    }
+    AxisInfo createDefaultAi(){
 
     }
 };

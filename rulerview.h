@@ -23,7 +23,7 @@ class RuleView : public QGraphicsView
     Q_OBJECT
 
 public:
-    explicit RuleView(QPointer<BookmarkManager> mngr, QSharedPointer<TimeAxis> timea,
+    explicit RuleView(QPointer<BookmarkManager> mngr, QPointer<TimeAxis> timea,
                      QWidget *parent = nullptr): QGraphicsView(parent), m_bkmngr(mngr), m_ta(timea){
         setRenderHints(QPainter::SmoothPixmapTransform| QPainter::TextAntialiasing);
        // setCacheMode(QGraphicsView::CacheNone); // change ??
@@ -50,7 +50,7 @@ private:
     QPixmap *pixmap;
     //
     QPointer<BookmarkManager> m_bkmngr;
-    QSharedPointer<TimeAxis> m_ta;
+    QPointer<TimeAxis> m_ta;
     QTableView* extraTable;
     QGraphicsProxyWidget* proxyWtTable;
 

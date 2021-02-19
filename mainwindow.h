@@ -18,7 +18,7 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    QSharedPointer<TimeAxis> timeAxis;
+    QPointer<TimeAxis> timeAxis;
     QPointer<BookmarkManager> bookmarkMngr;
     QPointer<RuleView> view;
 

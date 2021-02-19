@@ -9,6 +9,7 @@
 #include "qfilebuffer.h"
 #include <atomic>
 #include <QMutex>
+#include <QPointer>
 
 using MBookmarkVec = QVector<MultiBookmark>;
 using BookmarkVec = QVector<Bookmark>;
@@ -21,7 +22,7 @@ public:
     std::atomic<int> extraTableMax{0};
     int tableRowShift{0};
 
-    BookmarkManager(QSharedPointer<TimeAxis>& timeAxis);
+    BookmarkManager(QPointer<TimeAxis>& timeAxis);
     ~BookmarkManager(){
           sqlworker->closeDb();
     }
@@ -67,7 +68,7 @@ signals:
     void sendPrg(int val);
     void serviceMsg(QString msg);
 private:
-    QSharedPointer<TimeAxis> m_ta;
+    QPointer<TimeAxis> m_ta;
 
     MBookmarkVec bookmarksBuffer[3];
     BookmarkVec extraTableBuffer[3];

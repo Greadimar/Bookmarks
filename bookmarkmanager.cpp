@@ -1,8 +1,7 @@
 #include "bookmarkmanager.h"
 
 
-BookmarkManager::BookmarkManager(QSharedPointer<TimeAxis> &timeAxis): QObject(nullptr),
-
+BookmarkManager::BookmarkManager(QPointer<TimeAxis> &timeAxis): QObject(nullptr),
     m_ta(timeAxis)
 {
     sqlworker = new SqliteWorker(isRunning, this);

@@ -21,7 +21,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 
 
-    timeAxis = QSharedPointer<TimeAxis>::create();
+    timeAxis = new TimeAxis;
     bookmarkMngr = new BookmarkManager(timeAxis);
 
     //backend

@@ -22,7 +22,7 @@ public:
     };
     void startDb();
     void closeDb();
-    bool generateBookmarks(const QSharedPointer<TimeAxis> &tc, int count);
+    bool generateBookmarks(const QPointer<TimeAxis> &tc, int count);
 
     QVector<MultiBookmark> getMultiBookmarks(const int &start, const int &end, const int mbkDuration);
     QVector<Bookmark> getBookmarks(const int& start, const int & end);

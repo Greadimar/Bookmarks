@@ -15,7 +15,7 @@
 
 class BookmarksLine: public QGraphicsItem{
 public:
-    BookmarksLine(const Palette& plt, QPointer<BookmarkManager> bmkMngr, RenderInfo& ri, const QSharedPointer<TimeAxis>& t);
+    BookmarksLine(const Palette& plt, QPointer<BookmarkManager> bmkMngr, RenderInfo& ri, const QPointer<TimeAxis>& t);
     bool getMouseOnMultiBk() const;
 
     QPointF getPosForExtraTable() const;
@@ -24,7 +24,7 @@ private:
     const Palette& m_plt;
     QPointer<BookmarkManager> m_bmkMngr;
     const RenderInfo& m_ri;
-    QSharedPointer<TimeAxis> m_ta;
+    QPointer<TimeAxis> m_ta;
     QMap<int, MultiBookmark> curBkMap;
     QFont font{"Times", 10};
     const int multiBoookmarkWidth = 100;

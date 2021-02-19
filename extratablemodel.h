@@ -11,7 +11,7 @@ const int displayLimit{16};
 class ExtraTableModel: public QAbstractTableModel
 {
 public:
-    explicit ExtraTableModel(QSharedPointer<TimeAxis>& timeAxis,
+    explicit ExtraTableModel(QPointer<TimeAxis>& timeAxis,
                     QPointer<BookmarkManager> bmkMngr, const msecs& renderStep, QObject* parent) : QAbstractTableModel(parent),
         m_ta(timeAxis), m_bmkMngr(bmkMngr), m_renderStep(renderStep) {
         timer = new QTimer(parent);
@@ -21,7 +21,7 @@ public:
     QVariant data(const QModelIndex &index, int role) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
 private:
-    QSharedPointer<TimeAxis> m_ta;
+    QPointer<TimeAxis> m_ta;
     QPointer<BookmarkManager> m_bmkMngr;
     const msecs& m_renderStep;
     QVector<Bookmark> curVec;

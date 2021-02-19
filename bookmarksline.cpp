@@ -1,7 +1,7 @@
 #include "bookmarksline.h"
 #include <QFontMetrics>
 #include <QStyleOptionGraphicsItem>
-BookmarksLine::BookmarksLine(const Palette &plt, QPointer<BookmarkManager> bmkMngr, RenderInfo &ri, const QSharedPointer<TimeAxis> &t):
+BookmarksLine::BookmarksLine(const Palette &plt, QPointer<BookmarkManager> bmkMngr, RenderInfo &ri, const QPointer<TimeAxis> &t):
     m_plt(plt), m_bmkMngr(bmkMngr), m_ri(ri), m_ta(t){
     this->font.setStyleStrategy(QFont::ForceOutline);
     QFontMetrics fm(font);
