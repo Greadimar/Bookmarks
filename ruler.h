@@ -33,7 +33,7 @@ private:
         simpleAnimation = 1,
         animationWithInertion = 2
     };
-    Animation animation{Animation::simpleAnimation};
+    Animation animation{Animation::noAnimation};
 
 
     QPointer<TimeAxis> m_ta;
@@ -45,7 +45,9 @@ private:
     QPropertyAnimation* aniCurOffset;
     QPropertyAnimation* aniMin;
     QPropertyAnimation* aniMax;
-    QPropertyAnimation* aniAxisInfo;
+    QPropertyAnimation* aniDayWidth;
+    QPropertyAnimation* aniHourWidth;
+    QPropertyAnimation* aniStepWidth;
     QParallelAnimationGroup* aniParGroup;
 
     //        QAnimationGroup* g = new QAnimationGroup();
@@ -88,18 +90,19 @@ private: //events
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override{
         mouseXPosOnPress = event->pos().rx();
         if (event->button() == Qt::MidButton){
-
             auto hourw = static_cast<float>(m_ta->rulerWidth/24);
             auto dayw = static_cast<float>(m_ta->rulerWidth);
+            m_ta->setHourWidthInPx(hourw);
+            m_ta->setDayWidthInPx(dayw);
+            m_ta->setDragOffsetPx(0);
+            m_ta->setDragOffsetCurPx(0);
 
-            AxisInfo ai{hourw, dayw, hourw, 0, 0};
-            m_ta->setAi(ai);
 
             m_ta->step = TimeInfo::msecsInhour.count();
             m_ta->setMin(0);
-            m_ta->setMax(m_ta->msecFromPx(m_ta->getAi().dayWidthInPx));
-
+            m_ta->setMax(m_ta->msecFromPx(m_ta->getDayWidthInPx()));
         }
+
         if (event->button() == Qt::RightButton){
             int m = m_ta->msecFromPx(curMouseXPos) + m_ta->getMin();
             qDebug() << "msec pos : " <<curMouseXPos << m << toHours(m);
@@ -108,29 +111,21 @@ private: //events
         else event->accept();
     }
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override{
-       // qDebug() << "mv";
+        // qDebug() << "mv";
         curMouseXPos = event->pos().rx();
-        AxisInfo ai = m_ta->getAi();
-        ai.dragOffsetCur = mouseXPosOnPress - curMouseXPos;
-        m_ta->setAi(ai);
-        m_ta->setMin(m_ta->getZoomOffsetMsecs() + m_ta->msecFromPx(ai.dragOffset + ai.dragOffsetCur));
+        m_ta->setDragOffsetCurPx(mouseXPosOnPress - curMouseXPos);
+        m_ta->setMin(m_ta->getZoomOffsetMsecs() + m_ta->msecFromPx(m_ta->getDragOffsetPx() + m_ta->getDragOffsetCurPx()));
         m_ta->setMax(m_ta->getMin() + m_ta->msecFromPx(m_ta->rulerWidth));
 
     }
     void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override{
-       // qDebug() << "hv";
+        // qDebug() << "hv";
         curMouseXPos = mapToScene(event->pos()).rx();
     }
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override{
         event->accept();
-        AxisInfo ai = m_ta->getAi();
-        ai.dragOffset += ai.dragOffsetCur;
-        ai.dragOffsetCur = 0;
-        m_ta->setAi(ai);
-
-    }
-    AxisInfo createDefaultAi(){
-
+        m_ta->setDragOffsetPx(m_ta->getDragOffsetCurPx());
+        m_ta->setDragOffsetCurPx(0);
     }
 };
 

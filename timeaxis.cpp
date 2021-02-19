@@ -5,15 +5,15 @@ const msecs TimeInfo::msecsIn3hours = std::chrono::duration_cast<std::chrono::mi
 const msecs TimeInfo::msecsInhour = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::hours(1));
 
 
-AxisInfo TimeAxis::getAi() const
-{
-    return m_ai;
-}
+//AxisInfo TimeAxis::getAi() const
+//{
+//    return m_ai;
+//}
 
-void TimeAxis::setAi(const AxisInfo &ai)
-{
-    m_ai = ai;
-}
+//void TimeAxis::setAi(const AxisInfo &ai)
+//{
+//    m_ai = ai;
+//}
 
 int TimeAxis::getZoomOffsetMsecs() const
 {
@@ -24,7 +24,7 @@ void TimeAxis::setZoomOffsetMsecs(int zoomOffsetMsecs)
 {
     m_zoomOffsetMsecs = zoomOffsetMsecs;
 }
-/*
+
 float TimeAxis::getHourWidthInPx() const
 {
     return m_hourWidthInPx;
@@ -74,4 +74,4 @@ void TimeAxis::setDragOffsetCurPx(int dragOffsetCurPx)
 {
     m_dragOffsetCurPx = dragOffsetCurPx;
 }
-*/
+

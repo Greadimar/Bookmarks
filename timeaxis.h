@@ -8,7 +8,7 @@ struct TimeInfo{
     const static msecs msecsIn3hours;
     const static msecs msecsInhour;
 };
-
+/*
 struct AxisInfo{    //pixels values
     AxisInfo(){}
     AxisInfo (float hourw, float dayw, float stepw, int dragOff, int dragOffCur = 0):
@@ -41,7 +41,7 @@ inline bool operator!=(const AxisInfo& lhs, const AxisInfo& rhs)
     return !(lhs == rhs);
 }
 Q_DECLARE_METATYPE(AxisInfo)
-
+*/
 class TimeAxis: public QObject{
      Q_OBJECT
 
@@ -51,14 +51,16 @@ signals:
 public:
     Q_PROPERTY(int min READ getMin WRITE setMin NOTIFY minChanged)
     Q_PROPERTY(int max READ getMax WRITE setMax NOTIFY maxChanged)
-//    Q_PROPERTY(float hourWidth MEMBER hourWidthInPx)
-//    Q_PROPERTY(float dayWidth MEMBER dayWidthInPx)
-//    Q_PROPERTY(float step MEMBER stepInPx)
+    Q_PROPERTY(float hourWidth READ getHourWidthInPx WRITE setHourWidthInPx)
+    Q_PROPERTY(float dayWidth READ getDayWidthInPx WRITE setDayWidthInPx)
+    Q_PROPERTY(float step READ getStepInPx WRITE setStepInPx)
+    Q_PROPERTY(int dragOffset READ getDragOffsetPx WRITE setDragOffsetPx)
+    Q_PROPERTY(int dragOffsetCur READ getDragOffsetCurPx WRITE setDragOffsetCurPx)
     Q_PROPERTY(int zoomOffMsecs READ getZoomOffsetMsecs WRITE setZoomOffsetMsecs)
-    Q_PROPERTY(AxisInfo axisInfo READ getAi WRITE setAi)
+   // Q_PROPERTY(AxisInfo axisInfo READ getAi WRITE setAi)
 
     TimeAxis(){
-        qRegisterMetaType<AxisInfo>("AxisInfo");
+        //qRegisterMetaType<AxisInfo>("AxisInfo");
     };
 
     const int pxSpreadToUnite{100};
@@ -81,14 +83,14 @@ public:
     //mapping coords
 
     int msecFromPx(int xPos){
-        return static_cast<int>((xPos * TimeInfo::msecsInhour.count()) / m_ai.hourWidthInPx);
+        return static_cast<int>((xPos * TimeInfo::msecsInhour.count()) / m_hourWidthInPx);
     }
     int pxPosFromMsec(msecs mark){
-        double pxInMsec = m_ai.hourWidthInPx / TimeInfo::msecsInhour.count();
+        double pxInMsec = m_hourWidthInPx / TimeInfo::msecsInhour.count();
         return mark.count() * pxInMsec - getMin()*pxInMsec;
     }
     int pxPosFromMsec(int mark){
-        double pxInMsec = m_ai.hourWidthInPx / TimeInfo::msecsInhour.count();
+        double pxInMsec = m_hourWidthInPx / TimeInfo::msecsInhour.count();
         return mark * pxInMsec - getMin()*pxInMsec;
     }
 
@@ -102,22 +104,32 @@ public:
     void setMax(int vmax){this->m_max.store((vmax), std::memory_order_relaxed);}
     int getMin(){return m_min.load(std::memory_order_relaxed);}
     int getMax(){return m_max.load(std::memory_order_relaxed);}
-    AxisInfo getAi() const;
-    void setAi(const AxisInfo &ai);
+//    AxisInfo getAi() const;
+    //    void setAi(const AxisInfo &ai);
+    int getDragOffsetCurPx() const;
+    void setDragOffsetCurPx(int dragOffsetCurPx);
+    void setDragOffsetPx(int dragOffsetPx);
+    int getDragOffsetPx() const;
+    float getStepInPx() const;
+    void setStepInPx(float stepInPx);
+    float getDayWidthInPx() const;
+    void setDayWidthInPx(float dayWidthInPx);
+    void setHourWidthInPx(float hourWidthInPx);
+    float getHourWidthInPx() const;
 private:
     std::atomic<int> m_min = 0;//msecs(0);
     std::atomic<int> m_max = TimeInfo::msecsInDay.count();
     int m_zoomOffsetMsecs = 0;
 
     //pixels
-//    float m_hourWidthInPx = 100;
-//    float m_dayWidthInPx = m_hourWidthInPx * 24;
-//    float m_stepInPx = m_hourWidthInPx;
+    float m_hourWidthInPx = 100;
+    float m_dayWidthInPx = m_hourWidthInPx * 24;
+    float m_stepInPx = m_hourWidthInPx;
 
-//    int m_dragOffset = 0;
-//    int m_dragOffsetCur = 0;
+    int m_dragOffsetPx = 0;
+    int m_dragOffsetCurPx = 0;
 
-    AxisInfo m_ai;
+ //  AxisInfo m_ai;
 
 };
 
