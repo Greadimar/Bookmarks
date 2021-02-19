@@ -133,8 +133,12 @@ void Ruler::zoomToCenter(float targetZoomRatio){
     float targetMousePosMsec = m_ta->msecFromPx(curMouseXPos, targetHourWidth);
     auto targetZoomOffset = curPosInMsecs - targetMousePosMsec;
     int targetMin = targetZoomOffset ;
-    int targetMax = targetMin + m_ta->msecFromPx(m_ta->rulerWidth);
+    int targetMax = targetMin + m_ta->msecFromPx(m_ta->rulerWidth, targetHourWidth);
     int targetDragOffset{0};
+
+
+
+
 
     switch (animation){
     case Animation::noAnimation:{
