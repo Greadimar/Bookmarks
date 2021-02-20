@@ -3,6 +3,7 @@
 #include <atomic>
 #include "common.h"
 #include <QDataStream>
+#include <QDebug>
 struct TimeInfo{
     const static msecs msecsInDay;
     const static msecs msecsIn3hours;
@@ -83,9 +84,11 @@ public:
     //mapping coords
 
     int msecFromPx(int xPos){
+        qDebug() << "msecFromPx classic: " << m_hourWidthInPx << xPos;
         return static_cast<int>((xPos * TimeInfo::msecsInhour.count()) / m_hourWidthInPx);
     }
-    int msecFromPx(int xPos, int customHourWidth){
+    int msecFromPx(int xPos, float customHourWidth){
+        qDebug() << "msecFromPx upd: " << m_hourWidthInPx << xPos;
         return static_cast<int>((xPos * TimeInfo::msecsInhour.count()) / customHourWidth);
     }
     int pxPosFromMsec(msecs mark){
@@ -119,7 +122,7 @@ public:
     void setDayWidthInPx(float dayWidthInPx);
     void setHourWidthInPx(float hourWidthInPx);
     float getHourWidthInPx() const;
-private:
+public:
     std::atomic<int> m_min = 0;//msecs(0);
     std::atomic<int> m_max = TimeInfo::msecsInDay.count();
     int m_zoomOffsetMsecs = 0;

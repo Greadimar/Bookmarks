@@ -33,7 +33,7 @@ private:
         simpleAnimation = 1,
         animationWithInertion = 2
     };
-    Animation animation{Animation::noAnimation};
+    Animation animation{Animation::simpleAnimation};
 
 
     QPointer<TimeAxis> m_ta;
@@ -42,7 +42,8 @@ private:
 
     int animationDuration{300};
     QPropertyAnimation* aniZoomOffset;
-    QPropertyAnimation* aniCurOffset;
+    QPropertyAnimation* aniDragOffset;
+    QPropertyAnimation* aniDragCurOffset;
     QPropertyAnimation* aniMin;
     QPropertyAnimation* aniMax;
     QPropertyAnimation* aniDayWidth;
@@ -75,8 +76,8 @@ private: //events
     virtual void wheelEvent(QGraphicsSceneWheelEvent *event) override{
         int delta = event->delta();
 
-        static const float targetZoomInRatio{1.05};
-        static const float targetZoomOutRatio{0.95};
+        static const float targetZoomInRatio{1.08};
+        static const float targetZoomOutRatio{0.92};
 
         if (delta > 0)
             zoomToCenter(targetZoomInRatio);
@@ -112,10 +113,44 @@ private: //events
     }
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override{
         // qDebug() << "mv";
+
+
         curMouseXPos = event->pos().rx();
         m_ta->setDragOffsetCurPx(mouseXPosOnPress - curMouseXPos);
         m_ta->setMin(m_ta->getZoomOffsetMsecs() + m_ta->msecFromPx(m_ta->getDragOffsetPx() + m_ta->getDragOffsetCurPx()));
         m_ta->setMax(m_ta->getMin() + m_ta->msecFromPx(m_ta->rulerWidth));
+        return;
+
+
+
+
+        auto targetDragOffsetCur = mouseXPosOnPress - curMouseXPos;
+        auto targetMin = m_ta->getZoomOffsetMsecs() + m_ta->msecFromPx(m_ta->getDragOffsetPx() + targetDragOffsetCur);
+        auto targetMax = targetMin + m_ta->msecFromPx(m_ta->rulerWidth);
+
+        switch (animation){
+        case Animation::noAnimation: {
+            m_ta->setDragOffsetCurPx(mouseXPosOnPress - curMouseXPos);
+            m_ta->setMin(m_ta->getZoomOffsetMsecs() + m_ta->msecFromPx(m_ta->getDragOffsetPx() + m_ta->getDragOffsetCurPx()));
+            m_ta->setMax(m_ta->getMin() + m_ta->msecFromPx(m_ta->rulerWidth));
+            break;
+        default:
+                aniMin->setStartValue(m_ta->getMin());
+                aniMin->setEndValue(targetMax);
+                aniMax->setStartValue(m_ta->getMax());
+                aniMax->setEndValue(targetMax);
+                aniDragCurOffset->setStartValue(m_ta->getDragOffsetCurPx());
+                aniDragCurOffset->setEndValue(targetDragOffsetCur);
+                aniMax->start();
+                aniMin->start();
+                aniDragCurOffset->start();
+                break;
+            }
+        }
+
+
+        /**/
+
 
     }
     void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override{

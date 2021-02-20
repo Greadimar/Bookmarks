@@ -31,37 +31,41 @@ Ruler::Ruler(const Palette &plt, RenderInfo &ri, const QPointer<TimeAxis> &c): m
     });
 
     //init animation
-     aniDayWidth = makeAnimation(m_ta, "dayWidth");
-     aniHourWidth = makeAnimation(m_ta, "hourWidth");
-     aniStepWidth = makeAnimation(m_ta, "step");
-     aniZoomOffset = makeAnimation(m_ta, "zoomOffMsecs");
-     aniMin = makeAnimation(m_ta, "min");
-     aniMax = makeAnimation(m_ta, "max");
-    // aniAxisInfo = makeAnimation(m_ta, "axisInfo");
+    aniDayWidth = makeAnimation(m_ta, "dayWidth");
+    aniHourWidth = makeAnimation(m_ta, "hourWidth");
+    aniStepWidth = makeAnimation(m_ta, "step");
+    aniZoomOffset = makeAnimation(m_ta, "zoomOffMsecs");
+    aniMin = makeAnimation(m_ta, "min");
+    aniMax = makeAnimation(m_ta, "max");
+    aniDragOffset = makeAnimation(m_ta, "dragOffset");
+    aniDragCurOffset = makeAnimation(m_ta, "dragOffsetCur");
 
 
-     aniParGroup = new QParallelAnimationGroup(this);
-     aniParGroup->addAnimation(aniZoomOffset);
-     aniParGroup->addAnimation(aniMin);
-     aniParGroup->addAnimation(aniMax);
-     aniParGroup->addAnimation(aniDayWidth);
-     aniParGroup->addAnimation(aniStepWidth);
-     aniParGroup->addAnimation(aniHourWidth);
+    aniParGroup = new QParallelAnimationGroup(this);
+    aniParGroup->addAnimation(aniZoomOffset);
+    aniParGroup->addAnimation(aniMin);
+    aniParGroup->addAnimation(aniMax);
+    aniParGroup->addAnimation(aniDayWidth);
+    aniParGroup->addAnimation(aniStepWidth);
+    aniParGroup->addAnimation(aniHourWidth);
+    aniParGroup->addAnimation(aniDragOffset);
 
-     aniZoomOffset->setDuration(animationDuration);
-     aniMin->setDuration(animationDuration);
-     aniMax->setDuration(animationDuration);
-     aniDayWidth->setDuration(animationDuration);
-     aniHourWidth->setDuration(animationDuration);
-     aniZoomOffset->setDuration(animationDuration);
-     aniStepWidth->setDuration(animationDuration);
+    aniZoomOffset->setDuration(animationDuration);
+    aniMin->setDuration(animationDuration);
+    aniMax->setDuration(animationDuration);
+    aniDayWidth->setDuration(animationDuration);
+    aniHourWidth->setDuration(animationDuration);
+    aniZoomOffset->setDuration(animationDuration);
+    aniStepWidth->setDuration(animationDuration);
+    aniDragOffset->setDuration(animationDuration);
+    aniDragCurOffset->setDuration(animationDuration);
 
-     connect(aniParGroup, &QParallelAnimationGroup::finished, this, [=](){
+    connect(aniParGroup, &QParallelAnimationGroup::finished, this, [=](){
         qDebug() << "after ani min max" << m_ta->getMin() << m_ta->getMax();
         qDebug() << "after ani zoom" << m_ta->getZoomOffsetMsecs();
         qDebug() << "after ani step drag" << m_ta->getStepInPx() << m_ta->getDragOffsetPx();
         qDebug() << "after ani day hour" << m_ta->getDayWidthInPx() << m_ta->getHourWidthInPx();
-     });
+    });
 }
 
 void Ruler::paint(QPainter *p, const QStyleOptionGraphicsItem *, QWidget *) {
@@ -124,20 +128,19 @@ QPropertyAnimation *Ruler::makeAnimation(QObject *obj, const QString &propValue)
 
 
 void Ruler::zoomToCenter(float targetZoomRatio){
-    //   m_ta->zoom//Ratio = targetZoomRatio;
+
 
     int curPosInMsecs = m_ta->getMin() + m_ta->msecFromPx(curMouseXPos);
     auto targetDayWidth = m_ta->getDayWidthInPx() * targetZoomRatio;
     auto targetHourWidth = targetDayWidth/24;
     auto targetStepInPx = m_ta->getStepInPx() * targetZoomRatio;
     float targetMousePosMsec = m_ta->msecFromPx(curMouseXPos, targetHourWidth);
-    auto targetZoomOffset = curPosInMsecs - targetMousePosMsec;
+
+
+    int targetZoomOffset = curPosInMsecs - targetMousePosMsec;
     int targetMin = targetZoomOffset ;
     int targetMax = targetMin + m_ta->msecFromPx(m_ta->rulerWidth, targetHourWidth);
     int targetDragOffset{0};
-
-
-
 
 
     switch (animation){
@@ -164,14 +167,16 @@ void Ruler::zoomToCenter(float targetZoomRatio){
         aniHourWidth->setEndValue(targetHourWidth);
         aniStepWidth->setStartValue(m_ta->getDayWidthInPx());
         aniStepWidth->setEndValue(targetStepInPx);
+        aniDragOffset->setStartValue(m_ta->getDragOffsetPx());
+        aniDragOffset->setEndValue(targetDragOffset);
 
         //m_ta->ai = targetAi;
         aniParGroup->start();
 
-        qDebug() << "before ani min max" << m_ta->getMin() << m_ta->getMax();
-        qDebug() << "before ani zoom" << m_ta->getZoomOffsetMsecs();
-        qDebug() << "before ani step drag" << m_ta->getStepInPx() << m_ta->getDragOffsetPx();
-        qDebug() << "before ani day hour" << m_ta->getDayWidthInPx() << m_ta->getHourWidthInPx();
+        //        qDebug() << "before ani min max" << m_ta->getMin() << m_ta->getMax();
+        //        qDebug() << "before ani zoom" << m_ta->getZoomOffsetMsecs();
+        //        qDebug() << "before ani step drag" << m_ta->getStepInPx() << m_ta->getDragOffsetPx();
+        //        qDebug() << "before ani day hour" << m_ta->getDayWidthInPx() << m_ta->getHourWidthInPx();
     }
         break;
 
