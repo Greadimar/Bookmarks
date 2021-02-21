@@ -61,11 +61,16 @@ Ruler::Ruler(const Palette &plt, RenderInfo &ri, const QPointer<TimeAxis> &c): m
     aniDragCurOffset->setDuration(animationDuration);
 
     connect(aniParGroup, &QParallelAnimationGroup::finished, this, [=](){
-        qDebug() << "after ani min max" << m_ta->getMin() << m_ta->getMax();
-        qDebug() << "after ani zoom" << m_ta->getZoomOffsetMsecs();
-        qDebug() << "after ani step drag" << m_ta->getStepInPx() << m_ta->getDragOffsetPx();
-        qDebug() << "after ani day hour" << m_ta->getDayWidthInPx() << m_ta->getHourWidthInPx();
+       dbg("after");
+        rerender = true;
     });
+
+
+}
+
+void Ruler::setAnimation(const Animation &value)
+{
+    animation = value;
 }
 
 void Ruler::paint(QPainter *p, const QStyleOptionGraphicsItem *, QWidget *) {
@@ -74,9 +79,12 @@ void Ruler::paint(QPainter *p, const QStyleOptionGraphicsItem *, QWidget *) {
     int viewWidth = scene()->views().first()->width();
     int rulerWidth = viewWidth;
     float resizeSinceLastRender = rulerWidth / static_cast<float>(m_ta->rulerWidth);
-    m_ta->setStepInPx(m_ta->getStepInPx() * resizeSinceLastRender);
-    m_ta->setHourWidthInPx(m_ta->getHourWidthInPx() * resizeSinceLastRender);
-    m_ta->setDayWidthInPx(m_ta->getHourWidthInPx() * 24);
+
+
+        m_ta->setStepInPx(m_ta->getStepInPx() * resizeSinceLastRender);
+        m_ta->setHourWidthInPx(m_ta->getHourWidthInPx() * resizeSinceLastRender);
+        m_ta->setDayWidthInPx(m_ta->getHourWidthInPx() * 24);
+
     m_ta->rulerWidth.store(rulerWidth);
 
     //drawing ruler
@@ -123,6 +131,7 @@ void Ruler::paint(QPainter *p, const QStyleOptionGraphicsItem *, QWidget *) {
 
 QPropertyAnimation *Ruler::makeAnimation(QObject *obj, const QString &propValue){
     QPropertyAnimation* anim = new QPropertyAnimation(obj, propValue.toUtf8(), this);
+    anim->setEasingCurve(QEasingCurve::Type::Linear);
     return anim;
 }
 
@@ -135,7 +144,6 @@ void Ruler::zoomToCenter(float targetZoomRatio){
     auto targetHourWidth = targetDayWidth/24;
     auto targetStepInPx = m_ta->getStepInPx() * targetZoomRatio;
     float targetMousePosMsec = m_ta->msecFromPx(curMouseXPos, targetHourWidth);
-
 
     int targetZoomOffset = curPosInMsecs - targetMousePosMsec;
     int targetMin = targetZoomOffset ;
@@ -155,6 +163,8 @@ void Ruler::zoomToCenter(float targetZoomRatio){
     }
         break;
     default:{
+
+        dbg("before");
         aniMax->setStartValue(m_ta->getMax());
         aniMax->setEndValue(targetMax);
         aniMin->setStartValue(m_ta->getMin());
@@ -169,9 +179,12 @@ void Ruler::zoomToCenter(float targetZoomRatio){
         aniStepWidth->setEndValue(targetStepInPx);
         aniDragOffset->setStartValue(m_ta->getDragOffsetPx());
         aniDragOffset->setEndValue(targetDragOffset);
+      //  if (aniParGroup->state() == QParallelAnimationGroup::State::Running) aniParGroup->stop();
 
-        //m_ta->ai = targetAi;
         aniParGroup->start();
+        rerender = false;
+        //m_ta->ai = targetAi;
+
 
         //        qDebug() << "before ani min max" << m_ta->getMin() << m_ta->getMax();
         //        qDebug() << "before ani zoom" << m_ta->getZoomOffsetMsecs();

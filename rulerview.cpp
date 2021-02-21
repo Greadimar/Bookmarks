@@ -2,8 +2,13 @@
 #include "extratablemodel.h"
 #include <QHeaderView>
 #include "extratableview.h"
+Ruler *RuleView::getRuler() const
+{
+    return m_ruler;
+}
+
 void RuleView::initElements(){
-//    auto t = new TestItem();
+    //    auto t = new TestItem();
 
 //    m_scene.addItem(t);
     //   setSceneRect();

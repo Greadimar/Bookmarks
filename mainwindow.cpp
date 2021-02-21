@@ -86,6 +86,47 @@ MainWindow::MainWindow(QWidget *parent)
 
     });
 
+    //create menu for animation
+    auto menuSets = new QMenu("Настройки");
+    auto menuAni = new QMenu("Анимации");
+    auto actNoAni = new QAction("Без анимации");
+    auto actSimpleAni = new QAction("Простая анимация");
+    auto actInertion = new QAction("Инерции");
+
+    actNoAni->setCheckable(true);
+    actSimpleAni->setCheckable(true);
+    actInertion->setCheckable(true);
+
+    actNoAni->setChecked(true);
+
+    connect(actNoAni, &QAction::triggered, this, [=](){
+        view->getRuler()->setAnimation(Ruler::Animation::noAnimation);
+        actNoAni->setChecked(true);
+        actSimpleAni->setChecked(false);
+        actInertion->setChecked(false);
+    });
+    connect(actSimpleAni, &QAction::triggered, this, [=](){
+        view->getRuler()->setAnimation(Ruler::Animation::simpleAnimation);
+        actNoAni->setChecked(false);
+        actSimpleAni->setChecked(true);
+        actInertion->setChecked(false);
+    });
+
+    connect(actInertion, &QAction::triggered, this, [=](){
+        view->getRuler()->setAnimation(Ruler::Animation::animationWithInertion);
+        actNoAni->setChecked(false);
+        actSimpleAni->setChecked(false);
+        actInertion->setChecked(true);
+    });
+    menuAni->addAction(actNoAni);
+    menuAni->addAction(actSimpleAni);
+    menuAni->addAction(actInertion);
+    menuSets->addMenu(menuAni);
+    menuBar()->addMenu(menuSets);
+
+
+
+
   //  menu->addA
 }
 

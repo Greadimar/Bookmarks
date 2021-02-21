@@ -48,7 +48,6 @@ private:
 
     void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override{
          curMousePos = mapToScene(event->pos());
-         qDebug() << "h" << curMousePos;
 
     }
     void hoverLeaveEvent(QGraphicsSceneHoverEvent *event) override{

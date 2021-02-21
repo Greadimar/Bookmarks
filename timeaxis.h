@@ -83,13 +83,11 @@ public:
 
     //mapping coords
 
-    int msecFromPx(int xPos){
-        qDebug() << "msecFromPx classic: " << m_hourWidthInPx << xPos;
-        return static_cast<int>((xPos * TimeInfo::msecsInhour.count()) / m_hourWidthInPx);
+    float msecFromPx(int xPos){
+        return ((xPos * TimeInfo::msecsInhour.count()) / m_hourWidthInPx);
     }
-    int msecFromPx(int xPos, float customHourWidth){
-        qDebug() << "msecFromPx upd: " << m_hourWidthInPx << xPos;
-        return static_cast<int>((xPos * TimeInfo::msecsInhour.count()) / customHourWidth);
+    float msecFromPx(int xPos, float customHourWidth){
+        return ((xPos * TimeInfo::msecsInhour.count()) / customHourWidth);
     }
     int pxPosFromMsec(msecs mark){
         double pxInMsec = m_hourWidthInPx / TimeInfo::msecsInhour.count();

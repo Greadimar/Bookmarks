@@ -43,6 +43,8 @@ public:
     }
     ~RuleView(){}
 
+    Ruler *getRuler() const;
+
 private:
 
     QGraphicsScene m_scene;
