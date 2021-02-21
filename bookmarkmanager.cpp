@@ -1,50 +1,47 @@
 #include "bookmarkmanager.h"
 
 
-bool BookmarkManager::generateBookmarks(int count){
-    if (isRunning.load()) return false;
-   // sqlworker->startDb();
+BookmarkManager::BookmarkManager(QPointer<TimeAxis> &timeAxis): QObject(nullptr),
+    m_ta(timeAxis)
+{
+    sqlworker = new SqliteWorker(isRunning, this);
+    connect(sqlworker, &SqliteWorker::sendPrg, this, &BookmarkManager::sendPrg);
+    connect(sqlworker, &SqliteWorker::serviceMsg, this, &BookmarkManager::serviceMsg);
+}
+
+bool BookmarkManager::testGet()
+{
     auto startCollecting = std::chrono::system_clock::now();
     //sqlworker->generateBookmarks(count, m_timeconvertor);
-    this->m_fileworker.generateFile(m_timeconvertor, isRunning, count);
-    /*     bookmarks.clear();
-        bookmarks.reserve(count);
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<unsigned long> startDis(0, m_timeconvertor->msecsInDay.count());
-        std::uniform_int_distribution<unsigned long> durationDis(0, m_timeconvertor->msecsIn3hours.count());
+    auto bks = sqlworker->getMultiBookmarks(m_ta->getMin(), m_ta->getMax(), m_ta->getUnitingSpread());
 
-        for (int i = 0; i < count; i++){
-            msecs start{startDis(gen)};
-            msecs duration{durationDis(gen)};
-            bookmarks.push_back(ShpBookmark::create(start, start+duration));
-        }
-        std::sort(bookmarks.begin(), bookmarks.end(), [=](const ShpBookmark& a, const ShpBookmark& b)->bool{
-            return (a->start < b->start);
-        });*/
 
     auto timeToCollect = std::chrono::system_clock::now() - startCollecting;
-    collect();
-    qDebug() << "timeTognrt" << timeToCollect.count();
-    //        mVec.resize(bookmarks.size());
-    //         msecs unitingSpread = m_timeconvertor->getUnitingSpread();
-    //        for (size_t i = 0; i < bookmarks.size(); i++){
-    //            const Bookmark& cur = bookmarks[i];
-    //            msecs curMultiFinish = cur.start + unitingSpread;
-    //            mVec[i] = MultiBookmark(cur, curMultiFinish);
-    //            mVec[i].adjustStart();
-    //            mVec[i].adjustEnd(unitingSpread);
-
-    //        }
-    //  collectBookmarksForDisplay();
-    //  mVec.squeeze();
-     start();
+    qDebug() << "timeForGet" << timeToCollect.count() << duration_cast<std::chrono::seconds>(timeToCollect).count();
     return true;
 }
 
-QFileBuffer &BookmarkManager::getFileWorker()
+bool BookmarkManager::generateBookmarks(int count){
+    sqlworker->startDb();
+    auto startCollecting = std::chrono::system_clock::now();
+    isRunning = true;
+    sqlworker->generateBookmarks(m_ta, count);
+
+
+    auto timeToCollect = std::chrono::system_clock::now() - startCollecting;
+
+
+    qDebug() << "timeTognrt" << timeToCollect.count();
+
+    bufferIsReady = false;
+    tableBufferIsReady = false;
+    start();
+    return true;
+}
+
+SqliteWorker *BookmarkManager::getSqlworker() const
 {
-    return m_fileworker;
+    return sqlworker;
 }
 
 

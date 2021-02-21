@@ -4,7 +4,14 @@
 #include <QSharedPointer>
 
 class Bookmark;
-
+using hours = std::chrono::hours;
+template <typename T, typename U>
+auto duration_cast(U const& u) -> decltype(std::chrono::duration_cast<T>(u)){
+    return std::chrono::duration_cast<T>(u);
+}
+inline float toHours(int msec){
+    return msec / 3600000.;
+}
 using msecs = std::chrono::milliseconds;
 using ShpBookmark = QSharedPointer<Bookmark>;
 #endif // COMMON_H

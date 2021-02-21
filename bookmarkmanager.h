@@ -1,226 +1,120 @@
 #ifndef BOOKMARKMANAGER_H
 #define BOOKMARKMANAGER_H
 #include "bookmark.h"
-#include "timeconvertor.h"
-//#include "sqliteworker.h"
+#include "timeaxis.h"
+#include "sqliteworker.h"
 #include <QThread>
 #include <QDebug>
 #include <QObject>
 #include "qfilebuffer.h"
 #include <atomic>
 #include <QMutex>
+#include <QPointer>
 
-using BookmarkVec = QVector<MultiBookmark>;
-using ShpBookmarkVec = std::shared_ptr<BookmarkVec>;
+using MBookmarkVec = QVector<MultiBookmark>;
+using BookmarkVec = QVector<Bookmark>;
 class BookmarkManager: public QObject
 {
-Q_OBJECT
+    Q_OBJECT
 public:
     std::atomic_bool isRunning{false};
+    std::atomic<int> extraTableMin{0};
+    std::atomic<int> extraTableMax{0};
+    int tableRowShift{0};
 
-    BookmarkManager(QSharedPointer<TimeConvertor>& convertor): QObject(nullptr),
-
-//        bookmarksToDisplay(&bookmarksBuffer1),
-//        bookmarksToCompute(&bookmarksBuffer2),
-        m_timeconvertor(convertor)
-    {
-        //sqlworker = new SqliteWorker(isRunning);
-    };
+    BookmarkManager(QPointer<TimeAxis>& timeAxis);
+    ~BookmarkManager(){
+          sqlworker->closeDb();
+    }
     void stop(){
         isRunning.store(false);
+        bufferIsReady.store(false);
+        tableBufferIsReady.store(false);
     }
+    Q_INVOKABLE bool testGet();
     Q_INVOKABLE bool generateBookmarks(int count);
     Q_INVOKABLE void start(){
         isRunning = true;
+
         while (isRunning){
+            //           qDebug() << "comp";
             QThread::sleep(0);
-           // if (curRulerWidth == m_timeconvertor.rulerWidth.load(std::memory_order_relaxed)) continue;)
-            curRulerWidth = m_timeconvertor->rulerWidth.load(std::memory_order_relaxed);
-         //   collectBookmarksForDisplay();
             collect();
-         //   collectBookmarksForDisplayList();
-          //  swapIfNeeded();
+            collectTableBookmarks();
         }
+
     }
-    std::atomic_bool toSwap{false};
-    std::vector<ShpBookmark> bookmarks;
-   // ShpBookmarkVec bookmarksToDisplay;
-   // ShpBookmarkVec bookmarksToCompute;
 
-
-   // SqliteWorker *getSqlworker() const;
 
     QFileBuffer& getFileWorker();
 
-   // std::atomic<BookmarkVec*> readyBuffer = &bookmarksBuffer[1];
-   BookmarkVec* displayBuffer = &bookmarksBuffer[2];
-    std::atomic_bool displayBufIsBusy{false};
-    std::atomic_bool stale{false};
-    QMutex mutex;
+    // std::atomic<BookmarkVec*> readyBuffer = &bookmarksBuffer[1];
+    QVector<MultiBookmark>& getToDisplay(){
+        if (bufferIsReady)
+            displayBuffer = readyBuffer.exchange(displayBuffer);
+        auto& res = *displayBuffer;
+        bufferIsReady = false;
+        return res;
+    }
+    QVector<Bookmark>& getTableToDisplay(){
+        if (tableBufferIsReady)
+            displayTableBuffer = readyTableBuffer.exchange(displayTableBuffer);
+        auto& res = *displayTableBuffer;
+        tableBufferIsReady = false;
+        return res;
+    }
+
+    SqliteWorker *getSqlworker() const;
+
+signals:
+    void sendPrg(int val);
+    void serviceMsg(QString msg);
 private:
-    QSharedPointer<TimeConvertor> m_timeconvertor;
-    BookmarkVec bookmarksBuffer[3];
-    BookmarkVec* computingBuffer = &bookmarksBuffer[0];
+    QPointer<TimeAxis> m_ta;
+
+    MBookmarkVec bookmarksBuffer[3];
+    BookmarkVec extraTableBuffer[3];
+    std::atomic_bool bufferIsReady{false};
+    std::atomic_bool tableBufferIsReady{false};
+
+    std::atomic<MBookmarkVec*> displayBuffer = &bookmarksBuffer[2];
+    std::atomic<MBookmarkVec*> readyBuffer = &bookmarksBuffer[1];
+    std::atomic<MBookmarkVec*> computingBuffer = &bookmarksBuffer[0];
+
+    std::atomic<BookmarkVec*> displayTableBuffer = &extraTableBuffer[2];
+    std::atomic<BookmarkVec*> readyTableBuffer = &extraTableBuffer[1];
+    std::atomic<BookmarkVec*> computingTableBuffer = &extraTableBuffer[0];
+
     std::vector<Bookmark> testList;
 
     QVector<QSharedPointer<MultiBookmark>> mVec;
 
-   // SqliteWorker* sqlworker;
-    QFileBuffer m_fileworker;
+    SqliteWorker* sqlworker;
 
-    int curRulerWidth{0};
     void collect(){
-       // qDebug() << "recollect";
-        auto startCollecting = std::chrono::system_clock::now();
-        msecs spread = m_timeconvertor->getUnitingSpread();
-        int startCurMbk = 0;
-        int startNextMbk = 0;
-        int endCurMbk = spread.count() + startCurMbk;
+        // qDebug() << "recollect";
+       // auto startCollecting = std::chrono::system_clock::now();
+        int start = m_ta->getMin();
+        int end = m_ta->getMax();
+        int duration = m_ta->getUnitingSpread();
 
-        auto&& vec =  m_fileworker.getBookmarks(m_timeconvertor->left, m_timeconvertor->right, m_timeconvertor);
-        *computingBuffer = vec;
-        //while(displayBufIsBusy.exchange(true));
-        mutex.lock();
-       // qDebug() << "collect LOCK";
-        auto* temp = displayBuffer;
-        displayBuffer = computingBuffer;
-        computingBuffer = temp;
-        mutex.unlock();
-        displayBufIsBusy.store(false);
-       // qDebug() << "collect UNLOCK";
-        computingBuffer->clear();
-       // stale.store(false);
-        auto timeToCollect = std::chrono::system_clock::now() - startCollecting;
-      //  qDebug() << "timeToReCollectVec" << timeToCollect.count();
-    }
-    void recollect(){
-     /*    qDebug() << "recollect";
-         auto startCollecting = std::chrono::system_clock::now();
-
-         QMutableVectorIterator<MultiBookmark> it(*bookmarksToCompute);
-         msecs spread = m_timeconvertor->getUnitingSpread();
-         auto parse = [=](QMutableVectorIterator<MultiBookmark>& it){
-             auto& v = mVec;
-             auto b = it;
-             auto& cur = it.value();
-
-             auto vec = buf.getBookmarks(msecs(it.value().start), msecs(it.value().end), m_timeconvertor);
-             int i = vec.size()-1;
-             auto& curM = it.value();
-             QVector<Bookmark> splittedDeq;
-             for (; i>= 0; i--){
-                 auto &curS = vec[i];
-                 if (curS.start < curM.end) break;
-                 it.insert(MultiBookmark(curS.start, curS.start + spread.count()));
-             }
-             if (splittedDeq.size() != 0){
-                 it.next();
-                 it.insert(splittedDeq);
-                 it.value()->adjustStart();
-                 it.value()->adjustEnd(spread);
-             }
-
-             it = b;
-             while (it.hasNext()){
-                 auto& next = it.next();
-                 if (curM->end >= next->start){
-                     auto& deq = next->bookmarksDeq;
-                     for (int i = 0; i < next->bookmarksDeq.size(); i++){
-                         if (deq[i]->start > curM->end) break;
-                         curM->bookmarksDeq.push_back(deq.front());
-                         deq.pop_front();
-                     }
-
-                     if (deq.size() == 0){
-                         it.remove();
-                     }
-
-                    // curM.bookmarksDeq.push_back(Bookmark(next.start, next.end));
-                 }
-                 else{
-                     break;
-                 }
-             }
-             curM->adjustStart();
-             curM->adjustEnd(spread);
-             return it;
-         };
-         while(it.hasNext()){
-             it.next();
-             parse(it);
-         }
-
-
-         auto timeToCollect = std::chrono::system_clock::now() - startCollecting;
-         qDebug() << "timeToReCollectVec" << timeToCollect.count();*/
-    }
-
-    void collectBookmarksForDisplay(){
-       /* auto startCollecting = std::chrono::system_clock::now();
-        msecs unitingSpread = m_timeconvertor->getUnitingSpread();
-        mVec.clear();
-        mVec.reserve(bookmarks.size());
-        for (size_t i = 0; i < bookmarks.size()-1; i++){
-            const ShpBookmark& cur = bookmarks[i];
-            msecs curUnitingSpread = cur->start + unitingSpread;
-            if (curUnitingSpread < bookmarks[i+1]->start){
-                mVec.push_back(QSharedPointer<MultiBookmark>::create(cur, cur->end));
-                continue;
-            }
-            QSharedPointer<MultiBookmark> multi = QSharedPointer<MultiBookmark>::create(cur, curUnitingSpread);
-            while (curUnitingSpread >= bookmarks[i+1]->start){
-                merge(multi, bookmarks[i+1]);
-                i++;
-                if (i >= bookmarks.size()-1) break;
-            }
-            multi->adjustEnd(unitingSpread);
-            mVec.push_back(multi);
+        *computingBuffer = sqlworker->getMultiBookmarks(start, end, duration);
+        if (!bufferIsReady){
+            computingBuffer = readyBuffer.exchange(computingBuffer);
+            bufferIsReady.store(true);
         }
-        auto timeToCollect = std::chrono::system_clock::now() - startCollecting;
-        qDebug() << "timeToCollectVec" << timeToCollect.count();*/
     }
- /*   void collectBookmarksForDisplayList(){
-        testList.clear();
-       std::copy( bookmarks.begin(), bookmarks.end(), std::back_inserter( testList ) );
-        auto startCollecting = std::chrono::system_clock::now();
-        msecs unitingSpread = m_timeconvertor->getUnitingSpread();
 
-        auto end = testList.end()--;
-        for (auto b = testList.begin(); b != end; ++b){
-            auto&& cur = *b;
-            msecs curUnitingSpread = cur->start + unitingSpread;
-            auto next = std::next(b);
-            if (curUnitingSpread < (*next)->start){
-                continue;
-            }
-            auto multi = QSharedPointer<MultiBookmark>::create(cur, curUnitingSpread);
-            while (curUnitingSpread >= (*next)->start){
-                merge(multi, std::move(*next));
-                next = std::next(next);
-                if (next == testList.end()) break;
-            }
-            testList.erase(b, next);
-            testList.insert(b, multi);
-            b = next--;
+    void collectTableBookmarks(){
+        int start = extraTableMin;
+        int end = extraTableMax;
+
+        *computingTableBuffer = sqlworker->getBookmarks(start, end);
+        if (!tableBufferIsReady){
+            computingTableBuffer = readyTableBuffer.exchange(computingTableBuffer);
+            tableBufferIsReady.store(true);
         }
-
-        auto timeToCollect = std::chrono::system_clock::now() - startCollecting;
-        qDebug() << "timeToCollectList" << timeToCollect.count();
     }
-*/
-    void swapIfNeeded(){
-        if (!toSwap) return;
-      //  auto temp = std::atomic_load(&bookmarksToCompute);
-
-        //while (!std::atomic_compare_exchange_weak(bookmarksToDisplay, bookmarksToCompute, bookmarksToDisplay));
-    }
-//    void split(QVector<MultiBookmark>& vec, int pos, MultiBookmark& m, int oldNew, int endNew){
-//        QVector<MultiBookmark> splitted;
-//        //while
-//    }
-//    void merge(QVector<MultiBookmark>& vec, int pos, MultiBookmark& m, int endNew){
-
-//    }
 
 
 };

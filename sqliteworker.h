@@ -2,10 +2,10 @@
 #define SQLITEWORKER_H
 #include "sqlite3.h"
 #include "bookmark.h"
-#include "timeconvertor.h"
+#include "timeaxis.h"
 #include <optional>
 #include <QObject>
-
+#include <QTime>
 #include <queue>
 //constexpr bool dbgSqliteWorker = false;
 //#define DBG if constexpr (dbgSqliteWorker) qDebug
@@ -13,22 +13,25 @@ class SqliteWorker : public QObject
 {
     Q_OBJECT
 public:
+
     enum class LoggingMode{
         dbOnHard,
         dbOnRAM,
     };
-    SqliteWorker(std::atomic_bool& isRunning): isRunning(isRunning){};
+    SqliteWorker(std::atomic_bool& isRunning, QObject* parent): QObject(parent), isRunning(isRunning){
+        srand(QTime::currentTime().msecsSinceStartOfDay());
+    };
+
+    std::atomic_int counter{0};
     void startDb();
     void closeDb();
-    void generateBookmarks(int count, const QSharedPointer<TimeConvertor> &tc);
-    QVector<Bookmark> getBookmarks(msecs start, msecs end);
+    bool generateBookmarks(const QPointer<TimeAxis> &tc, int count);
 
-public slots:
-
-
+    QVector<MultiBookmark> getMultiBookmarks(const int &start, const int &end, const int mbkDuration);
+    QVector<Bookmark> getBookmarks(const int& start, const int & end);
 signals:
+    void sendPrg(int);
     void serviceMsg(QString msg);
-    void sendPrg(int prg);
 private:
     std::atomic_bool& isRunning;
     LoggingMode m_mode;
@@ -38,17 +41,18 @@ private:
     enum class BookmarkCols: int{
         ID = 0, START_TIME = 1, END_TIME = 2, NAME = 3
     };
-    char unsortedTableName[18] = "bookmarksUTable";        //unsorted temporary table
-    char tableName[17] = "bookmarksTable";          //sorted table
+    char tableName[16] = "bookmarksTable";          //sorted table
+    char indexTableName[16] = "indexTable";
 
-
-    SessionStatus sessionStatus{SessionStatus::idle};
-
+    int curCount{0};
+    int curStart{0};
+    int curEnd{0};
 
     sqlite3* dbSqlite{nullptr};
     void initDb();
     QString filename;
     void createTable(char* table);
+    void createIndexTable();
     void dropTable(char *table);
     using timePoint = std::chrono::time_point<std::chrono::system_clock>;
     timePoint waitNotesResetTp{std::chrono::system_clock::now()};
@@ -59,14 +63,28 @@ private:
     void beginTransaction();
     void commitTransaction();
     void createTables();
-    std::optional<BookmarkZone> getBookmarkZone(const msecs& start, const msecs& end);
-    bool checkDb();
 
+
+   // std::optional<MultiBookmark> getBookmarkZone(const int &mark, int &next);
+    std::optional<MultiBookmark> getBookmarkZone(const int &mark, int &next, const int duration);
+        std::optional<MultiBookmark> getTargetBookmarkZone(const Bookmark& bk, const int duration);
+    int getRowByStartMark(const int& mark);
+        int getRowByEndMark(const int& mark);
+    std::optional<Bookmark> getBookmarkByRow(const int row);
     bool checkPrepareReturn(const int& rc);
-    /*  static int idGetter(void *, int, char **, char **);*/
 
-    using CallbackDataGetter = int (*)(void*, int, char **, char **);
-    QString addInvCommas(const QString& str);
+    template<int size> void generateStr(char* str){
+        static const char set[] =
+        "0123456789"
+      //  "!@#$%^&*"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+        static const int len = sizeof(set) - 1;
+        for (int i = 0; i < size; i++){
+            str[i] = set[rand() % len];
+        }
+    }
+
 
 };
 
