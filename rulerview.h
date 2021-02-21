@@ -35,10 +35,12 @@ public:
         setScene(&m_scene);
 
         m_scene.setBackgroundBrush(QBrush(QColor("#989898")));
-        initElements();
-        renderTimer();
+
         QTimer::singleShot(10, this, [=](){
             this->setMinimumSize(sizeHint());
+             initElements();
+
+             renderTimer();
         });
     }
     ~RuleView(){}

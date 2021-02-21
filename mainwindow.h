@@ -3,6 +3,7 @@
 #include "rulerview.h"
 #include <QMainWindow>
 #include <QPointer>
+#include <QLabel>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -18,6 +19,14 @@ public:
 
 private:
     Ui::MainWindow *ui;
+
+    enum class State{
+        generating,
+        idle
+    };
+    State state{State::idle};
+    int curSize{0};
+    QLabel* lblStatus;
     QPointer<TimeAxis> timeAxis;
     QPointer<BookmarkManager> bookmarkMngr;
     QPointer<RuleView> view;

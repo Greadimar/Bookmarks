@@ -17,24 +17,31 @@ bool BookmarkManager::testGet()
 
 
     auto timeToCollect = std::chrono::system_clock::now() - startCollecting;
-    qDebug() << "time" << timeToCollect.count() << duration_cast<std::chrono::seconds>(timeToCollect).count();
+    qDebug() << "timeForGet" << timeToCollect.count() << duration_cast<std::chrono::seconds>(timeToCollect).count();
+    return true;
 }
 
 bool BookmarkManager::generateBookmarks(int count){
-     sqlworker->startDb();
+    sqlworker->startDb();
     auto startCollecting = std::chrono::system_clock::now();
+    isRunning = true;
     sqlworker->generateBookmarks(m_ta, count);
 
 
     auto timeToCollect = std::chrono::system_clock::now() - startCollecting;
 
 
-     qDebug() << "timeTognrt" << timeToCollect.count();
+    qDebug() << "timeTognrt" << timeToCollect.count();
 
-     bufferIsReady = false;
-     tableBufferIsReady = false;
-     start();
+    bufferIsReady = false;
+    tableBufferIsReady = false;
+    start();
     return true;
+}
+
+SqliteWorker *BookmarkManager::getSqlworker() const
+{
+    return sqlworker;
 }
 
 

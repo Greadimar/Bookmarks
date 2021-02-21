@@ -17,6 +17,8 @@ public:
         timer = new QTimer(parent);
         connect(timer, &QTimer::timeout, this, &ExtraTableModel::updateModel);
         timer->start(renderStep);
+        curVec << Bookmark(9999,9999);
+        curVec.last().setName("bookmark 99999999");
     }
     QVariant data(const QModelIndex &index, int role) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role) const override;

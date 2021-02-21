@@ -8,7 +8,7 @@ class Delegate;
 class ExtraTableView: public QTableView
 {
 public:
-    explicit ExtraTableView(bool& tableIsHovered,  QWidget* parent);
+    explicit ExtraTableView(bool& tableIsHovered,  QWidget* parent = nullptr);
 
 private:
     bool& m_tableIsHovered;

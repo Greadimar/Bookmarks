@@ -19,17 +19,29 @@ void RuleView::initElements(){
     //init table
 
     auto model = new ExtraTableModel(m_ta, m_bkmngr, renderInfo.renderStep, this);
-    extraTable = new ExtraTableView(tableIsHovered, this);
+    extraTable = new ExtraTableView(tableIsHovered);
+   // extraTable->setMinimumSize({200,200});
     extraTable->setModel(model);
     extraTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     extraTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     extraTable->resizeRowsToContents();
+
+
+    int paddings = contentsMargins().left() + contentsMargins().right();
+    extraTable->setColumnWidth(0, fontMetrics().horizontalAdvance("bookmark 999999999") + paddings);
+    extraTable->setColumnWidth(1, fontMetrics().horizontalAdvance("hh:mm:ss:zzzz") + paddings);
+    extraTable->setColumnWidth(2, fontMetrics().horizontalAdvance("hh:mm:ss:zzzz") + paddings);
+    extraTable->resizeColumnsToContents();
+    extraTable->setMinimumSize(extraTable->sizeHint());
+    extraTable->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
 
     //init positions
     m_ruler->setPos(0,0);
     m_scene.addItem(m_ruler);
     m_scene.addItem(m_line);
     proxyWtTable = m_scene.addWidget(extraTable);
+  //  proxyWtTable->setMinimumSize({400,300}); //temporary
+
     renderInfo.tableSize = extraTable->sizeHint();
     extraTable->setVisible(false);
    // proxyWtTable->setVisible(false);

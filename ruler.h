@@ -136,6 +136,7 @@ private: //events
         timerOnPress.restart();
         if (event->button() == Qt::MidButton){
             aniZoomParGroup->stop();
+            aniInertDragOffset->stop();
             auto hourw = m_ta->rulerWidth/24.;
             auto dayw = static_cast<float>(m_ta->rulerWidth);
             m_ta->setHourWidthInPx(hourw);
@@ -165,10 +166,6 @@ private: //events
         m_ta->setMin(m_ta->getZoomOffsetMsecs() + m_ta->msecFromPx(m_ta->getDragOffsetPx() + m_ta->getDragOffsetCurPx()));
         m_ta->setMax(m_ta->getMin() + m_ta->msecFromPx(m_ta->rulerWidth));
         return;
-
-
-
-
     }
     void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override{
 
@@ -176,6 +173,9 @@ private: //events
         // qDebug() << "hv" << curMouseXPos;
     }
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override{
+        if (event->button() == Qt::MidButton){
+            return;
+        }
         event->accept();
         aniZoomParGroup->stop();
         aniInertParGroup->stop();
@@ -183,6 +183,7 @@ private: //events
         auto targetDragOffsetCurPx(0);
         m_ta->setDragOffsetPx(targetDragOffsetPx);
         m_ta->setDragOffsetCurPx(targetDragOffsetCurPx);
+
 
         switch (animation){
         case Animation::animationWithInertion: {

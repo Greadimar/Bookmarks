@@ -64,6 +64,8 @@ public:
         return res;
     }
 
+    SqliteWorker *getSqlworker() const;
+
 signals:
     void sendPrg(int val);
     void serviceMsg(QString msg);

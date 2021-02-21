@@ -40,7 +40,8 @@ void BookmarksLine::paint(QPainter *p, const QStyleOptionGraphicsItem *st, QWidg
                     }
                     posForExtraTable.setX(s);
                     foundHover = true;
-                    mouseOnMultiBk = true & isHovered;
+                   // mouseOnMultiBk = (mbk.count > 1) & isHovered;
+                    mouseOnMultiBk = isHovered;
                     m_bmkMngr->extraTableMin = mbk.start;
                     m_bmkMngr->extraTableMax = mbk.end;
 
@@ -54,7 +55,7 @@ void BookmarksLine::paint(QPainter *p, const QStyleOptionGraphicsItem *st, QWidg
 void BookmarksLine::paintMbk(const MultiBookmark &mb, QPainter *p, const QStyleOptionGraphicsItem *st){
     if (mb.count != 1) p->setPen(QPen(m_plt.multiBookmarksBorders, 2));
     else p->setPen(QPen(m_plt.singleBookmarksBorders, borderWidth));
-    QPoint posTopLeft{m_ta->pxPosFromMsec(mb.start), m_ri.bookmarksTopY};
+    QPointF posTopLeft{m_ta->pxPosFromMsec(mb.start), static_cast<qreal>(m_ri.bookmarksTopY)};
 
     int w = m_ta->pxPosFromMsec(mb.end) - posTopLeft.rx() - borderWidth;
     int h = m_ri.bookmarksHeight;

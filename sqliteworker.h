@@ -13,6 +13,7 @@ class SqliteWorker : public QObject
 {
     Q_OBJECT
 public:
+
     enum class LoggingMode{
         dbOnHard,
         dbOnRAM,
@@ -20,6 +21,8 @@ public:
     SqliteWorker(std::atomic_bool& isRunning, QObject* parent): QObject(parent), isRunning(isRunning){
         srand(QTime::currentTime().msecsSinceStartOfDay());
     };
+
+    std::atomic_int counter{0};
     void startDb();
     void closeDb();
     bool generateBookmarks(const QPointer<TimeAxis> &tc, int count);
