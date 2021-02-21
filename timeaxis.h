@@ -120,6 +120,15 @@ public:
     void setDayWidthInPx(float dayWidthInPx);
     void setHourWidthInPx(float hourWidthInPx);
     float getHourWidthInPx() const;
+
+    void updScaleByMinMax(){
+        float pxInMsec = rulerWidth.load(std::memory_order_relaxed) / static_cast<float>(
+                    getVisibleDuration().count());
+        m_hourWidthInPx = pxInMsec * TimeInfo::msecsInhour.count();
+        m_dayWidthInPx = pxInMsec * TimeInfo::msecsInDay.count();
+        m_stepInPx = m_hourWidthInPx;
+    }
+
 private:
     std::atomic<int> m_min = 0;//msecs(0);
     std::atomic<int> m_max = TimeInfo::msecsInDay.count();

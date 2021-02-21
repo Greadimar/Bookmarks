@@ -43,16 +43,12 @@ private:
     QFont font{"Times", 10};
 
 
-    int animationDuration{300};
-    bool rerender{true};
+    int animationDuration{400};
     QPropertyAnimation* aniZoomOffset;
     QPropertyAnimation* aniDragOffset;
     QPropertyAnimation* aniDragCurOffset;
     QPropertyAnimation* aniMin;
     QPropertyAnimation* aniMax;
-    QPropertyAnimation* aniDayWidth;
-    QPropertyAnimation* aniHourWidth;
-    QPropertyAnimation* aniStepWidth;
     QParallelAnimationGroup* aniParGroup;
 
     //        QAnimationGroup* g = new QAnimationGroup();
@@ -65,6 +61,7 @@ private:
 
     int mouseXPosOnPress{0};
     int curMouseXPos{0};
+
     void zoomToCenter(float targetZoomRatio);
 
     QRectF boundingRect() const override {
@@ -78,17 +75,33 @@ private:
 
 private: //events
     virtual void wheelEvent(QGraphicsSceneWheelEvent *event) override{
-        int delta = event->delta();
+        static int delta{event->delta()};
+        int curDelta = event->delta();
         curMouseXPos = event->pos().rx();
-        static const float zoomInRatio{1.1};
+
+        //init zoomRatio constants
+        static const float zoomInRatio{1.05};
         static const float zoomOutRatio{0.95};
-        static const float zoomStep{0.05};
+        static const float zoomInStep{0.05};
+        static const float zoomOutStep{0.01};
         static float targetZoomInRatio = zoomInRatio;
         static float targetZoomOutRatio = zoomOutRatio;
+
+        //reset dragging
+        auto targetDragOffsetPx(m_ta->getDragOffsetPx() + m_ta->getDragOffsetCurPx());
+        auto targetDragOffsetCurPx(0);
+        m_ta->setDragOffsetPx(targetDragOffsetPx);
+        m_ta->setDragOffsetCurPx(targetDragOffsetCurPx);
+        mouseXPosOnPress = curMouseXPos;
+
+        //set targetZoom
         if (animation != Animation::noAnimation){
+            if ((curDelta > 0 && delta < 0) || (curDelta < 0 && delta > 0)){    //stop animation for switching direction
+                aniParGroup->stop();
+            }
             if (aniParGroup->state() == QParallelAnimationGroup::State::Running){
-                targetZoomInRatio += zoomStep;
-                targetZoomOutRatio -= zoomStep;
+                targetZoomInRatio += zoomInStep;
+                targetZoomOutRatio -= zoomOutStep;
             }
             else{
                 targetZoomInRatio = zoomInRatio;
@@ -96,6 +109,7 @@ private: //events
             }
         }
 
+        delta = curDelta;
         if (delta > 0)
             zoomToCenter(targetZoomInRatio);
         else
@@ -108,6 +122,7 @@ private: //events
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override{
         mouseXPosOnPress = event->pos().rx();
         if (event->button() == Qt::MidButton){
+            aniParGroup->stop();
             auto hourw = m_ta->rulerWidth/24.;
             auto dayw = static_cast<float>(m_ta->rulerWidth);
             m_ta->setHourWidthInPx(hourw);
@@ -115,10 +130,10 @@ private: //events
             m_ta->setDragOffsetPx(0);
             m_ta->setDragOffsetCurPx(0);
 
-
             m_ta->step = TimeInfo::msecsInhour.count();
             m_ta->setMin(0);
             m_ta->setMax(m_ta->msecFromPx(m_ta->getDayWidthInPx()));
+
         }
 
         if (event->button() == Qt::RightButton){
@@ -131,7 +146,7 @@ private: //events
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override{
         // qDebug() << "mv";
 
-
+        aniParGroup->stop();
         curMouseXPos = event->pos().rx();
         m_ta->setDragOffsetCurPx(mouseXPosOnPress - curMouseXPos);
         m_ta->setMin(m_ta->getZoomOffsetMsecs() + m_ta->msecFromPx(m_ta->getDragOffsetPx() + m_ta->getDragOffsetCurPx()));
@@ -139,33 +154,6 @@ private: //events
         return;
 
 
-
-        auto targetDragOffsetCur = mouseXPosOnPress - curMouseXPos;
-        auto targetMin = m_ta->getZoomOffsetMsecs() + m_ta->msecFromPx(m_ta->getDragOffsetPx() + targetDragOffsetCur);
-        auto targetMax = targetMin + m_ta->msecFromPx(m_ta->rulerWidth);
-
-        switch (animation){
-        case Animation::noAnimation: {
-            m_ta->setDragOffsetCurPx(targetDragOffsetCur);
-            m_ta->setMin(targetMin);
-            m_ta->setMax(targetMax);
-            break;
-        default:
-                aniMin->setStartValue(m_ta->getMin());
-                aniMin->setEndValue(targetMax);
-                aniMax->setStartValue(m_ta->getMax());
-                aniMax->setEndValue(targetMax);
-                aniDragCurOffset->setStartValue(m_ta->getDragOffsetCurPx());
-                aniDragCurOffset->setEndValue(targetDragOffsetCur);
-                aniMax->start();
-                aniMin->start();
-                aniDragCurOffset->start();
-                break;
-            }
-        }
-
-
-        /**/
 
 
     }

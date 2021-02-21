@@ -30,12 +30,9 @@ float TimeAxis::getHourWidthInPx() const
     return m_hourWidthInPx;
 }
 
+
 void TimeAxis::setHourWidthInPx(float hourWidthInPx)
 {
-    if (hourWidthInPx < 32.1){
-        int x;
-        qDebug() << "x";
-    }
     m_hourWidthInPx = hourWidthInPx;
 }
 
