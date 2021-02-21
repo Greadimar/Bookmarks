@@ -15,12 +15,12 @@ const msecs TimeInfo::msecsInhour = std::chrono::duration_cast<std::chrono::mill
 //    m_ai = ai;
 //}
 
-int TimeAxis::getZoomOffsetMsecs() const
+float TimeAxis::getZoomOffsetMsecs() const
 {
     return m_zoomOffsetMsecs;
 }
 
-void TimeAxis::setZoomOffsetMsecs(int zoomOffsetMsecs)
+void TimeAxis::setZoomOffsetMsecs(float zoomOffsetMsecs)
 {
     m_zoomOffsetMsecs = zoomOffsetMsecs;
 }
@@ -32,6 +32,10 @@ float TimeAxis::getHourWidthInPx() const
 
 void TimeAxis::setHourWidthInPx(float hourWidthInPx)
 {
+    if (hourWidthInPx < 32.1){
+        int x;
+        qDebug() << "x";
+    }
     m_hourWidthInPx = hourWidthInPx;
 }
 
@@ -55,22 +59,22 @@ void TimeAxis::setStepInPx(float stepInPx)
     m_stepInPx = stepInPx;
 }
 
-int TimeAxis::getDragOffsetPx() const
+float TimeAxis::getDragOffsetPx() const
 {
     return m_dragOffsetPx;
 }
 
-void TimeAxis::setDragOffsetPx(int dragOffsetPx)
+void TimeAxis::setDragOffsetPx(float dragOffsetPx)
 {
     m_dragOffsetPx = dragOffsetPx;
 }
 
-int TimeAxis::getDragOffsetCurPx() const
+float TimeAxis::getDragOffsetCurPx() const
 {
     return m_dragOffsetCurPx;
 }
 
-void TimeAxis::setDragOffsetCurPx(int dragOffsetCurPx)
+void TimeAxis::setDragOffsetCurPx(float dragOffsetCurPx)
 {
     m_dragOffsetCurPx = dragOffsetCurPx;
 }

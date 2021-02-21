@@ -87,9 +87,8 @@ private: //events
         static float targetZoomOutRatio = zoomOutRatio;
         if (animation != Animation::noAnimation){
             if (aniParGroup->state() == QParallelAnimationGroup::State::Running){
-                //targetZoomInRatio += zoomStep;
-               // targetZoomOutRatio -= zoomStep;
-                return;
+                targetZoomInRatio += zoomStep;
+                targetZoomOutRatio -= zoomStep;
             }
             else{
                 targetZoomInRatio = zoomInRatio;
@@ -109,7 +108,7 @@ private: //events
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override{
         mouseXPosOnPress = event->pos().rx();
         if (event->button() == Qt::MidButton){
-            auto hourw = static_cast<float>(m_ta->rulerWidth/24);
+            auto hourw = m_ta->rulerWidth/24.;
             auto dayw = static_cast<float>(m_ta->rulerWidth);
             m_ta->setHourWidthInPx(hourw);
             m_ta->setDayWidthInPx(dayw);
@@ -171,8 +170,9 @@ private: //events
 
     }
     void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override{
-        // qDebug() << "hv";
+
         curMouseXPos = mapToScene(event->pos()).rx();
+         qDebug() << "hv" << curMouseXPos;
     }
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override{
         event->accept();

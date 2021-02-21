@@ -89,11 +89,11 @@ public:
     float msecFromPx(int xPos, float customHourWidth){
         return ((xPos * TimeInfo::msecsInhour.count()) / customHourWidth);
     }
-    int pxPosFromMsec(msecs mark){
+    float pxPosFromMsec(msecs mark){
         double pxInMsec = m_hourWidthInPx / TimeInfo::msecsInhour.count();
         return mark.count() * pxInMsec - getMin()*pxInMsec;
     }
-    int pxPosFromMsec(int mark){
+    float pxPosFromMsec(int mark){
         double pxInMsec = m_hourWidthInPx / TimeInfo::msecsInhour.count();
         return mark * pxInMsec - getMin()*pxInMsec;
     }
@@ -102,25 +102,25 @@ public:
 
 
     //getters and setters
-    int getZoomOffsetMsecs() const;
-    void setZoomOffsetMsecs(int zoomOffsetMsecs);
+    float getZoomOffsetMsecs() const;
+    void setZoomOffsetMsecs(float zoomOffsetMsecs);
     void setMin(int vmin){this->m_min.store((vmin), std::memory_order_relaxed);}
     void setMax(int vmax){this->m_max.store((vmax), std::memory_order_relaxed);}
     int getMin(){return m_min.load(std::memory_order_relaxed);}
     int getMax(){return m_max.load(std::memory_order_relaxed);}
 //    AxisInfo getAi() const;
     //    void setAi(const AxisInfo &ai);
-    int getDragOffsetCurPx() const;
-    void setDragOffsetCurPx(int dragOffsetCurPx);
-    void setDragOffsetPx(int dragOffsetPx);
-    int getDragOffsetPx() const;
+    float getDragOffsetCurPx() const;
+    void setDragOffsetCurPx(float dragOffsetCurPx);
+    void setDragOffsetPx(float dragOffsetPx);
+    float getDragOffsetPx() const;
     float getStepInPx() const;
     void setStepInPx(float stepInPx);
     float getDayWidthInPx() const;
     void setDayWidthInPx(float dayWidthInPx);
     void setHourWidthInPx(float hourWidthInPx);
     float getHourWidthInPx() const;
-public:
+private:
     std::atomic<int> m_min = 0;//msecs(0);
     std::atomic<int> m_max = TimeInfo::msecsInDay.count();
     int m_zoomOffsetMsecs = 0;
@@ -130,8 +130,8 @@ public:
     float m_dayWidthInPx = m_hourWidthInPx * 24;
     float m_stepInPx = m_hourWidthInPx;
 
-    int m_dragOffsetPx = 0;
-    int m_dragOffsetCurPx = 0;
+    float m_dragOffsetPx = 0;
+    float m_dragOffsetCurPx = 0;
 
  //  AxisInfo m_ai;
 

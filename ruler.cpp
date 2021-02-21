@@ -19,7 +19,7 @@ Ruler::Ruler(const Palette &plt, RenderInfo &ri, const QPointer<TimeAxis> &c): m
         int viewWidth = scene()->views().first()->width();
         int rulerWidth = viewWidth;// - m_ri.leftMargin - m_ri.rightMargin;
         m_ta->rulerWidth.store(rulerWidth);
-        auto hourw = static_cast<float>(rulerWidth/24);
+        auto hourw = rulerWidth/24.;
         auto dayw = static_cast<float>(rulerWidth);
 
         //AxisInfo ai{hourw, dayw, hourw, 0, 0};
@@ -61,7 +61,7 @@ Ruler::Ruler(const Palette &plt, RenderInfo &ri, const QPointer<TimeAxis> &c): m
     aniDragCurOffset->setDuration(animationDuration);
 
     connect(aniParGroup, &QParallelAnimationGroup::finished, this, [=](){
-       dbg("after");
+        dbg("after");
         rerender = true;
     });
 
@@ -81,12 +81,14 @@ void Ruler::paint(QPainter *p, const QStyleOptionGraphicsItem *, QWidget *) {
     float resizeSinceLastRender = rulerWidth / static_cast<float>(m_ta->rulerWidth);
 
 
-        m_ta->setStepInPx(m_ta->getStepInPx() * resizeSinceLastRender);
-        m_ta->setHourWidthInPx(m_ta->getHourWidthInPx() * resizeSinceLastRender);
-        m_ta->setDayWidthInPx(m_ta->getHourWidthInPx() * 24);
+   /* m_ta->setStepInPx(m_ta->getStepInPx() * resizeSinceLastRender);
+    m_ta->setHourWidthInPx(m_ta->getHourWidthInPx() * resizeSinceLastRender);
+    m_ta->setDayWidthInPx(m_ta->getHourWidthInPx() * 24);
 
-    m_ta->rulerWidth.store(rulerWidth);
-
+    m_ta->rulerWidth.store(rulerWidth);*/
+    int how = m_ta->getHourWidthInPx();
+    int dw = m_ta->getDayWidthInPx();
+    int stPx = m_ta->getStepInPx();
     //drawing ruler
     //    p->setPen(m_plt.rulerBackground);
     //    p->drawRect(0, 0, viewWidth,  hourLabelsBottomPos);
@@ -108,7 +110,7 @@ void Ruler::paint(QPainter *p, const QStyleOptionGraphicsItem *, QWidget *) {
     int h = 0;
     for (; time < msecIn10h; time += m_ta->step){
         if (time >= min && time <= max){
-            int curTimePx = m_ta->pxPosFromMsec(time);
+            float curTimePx = m_ta->pxPosFromMsec(time);
             p->drawLine({rx + curTimePx, curPos.ry()}, QPointF{rx + curTimePx, curPos.ry() + linesHeight});
             p->drawText(QPointF{curTimePx - hour1xLabelsOffsetToCenter, hourLabelsBottomPos}, QString("%1h").arg(h));
         }
@@ -179,7 +181,7 @@ void Ruler::zoomToCenter(float targetZoomRatio){
         aniStepWidth->setEndValue(targetStepInPx);
         aniDragOffset->setStartValue(m_ta->getDragOffsetPx());
         aniDragOffset->setEndValue(targetDragOffset);
-      //  if (aniParGroup->state() == QParallelAnimationGroup::State::Running) aniParGroup->stop();
+        //  if (aniParGroup->state() == QParallelAnimationGroup::State::Running) aniParGroup->stop();
 
         aniParGroup->start();
         rerender = false;
