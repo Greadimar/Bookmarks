@@ -26,10 +26,12 @@ MainWindow::MainWindow(QWidget *parent)
 
     //backend
     bookmngrThr = new QThread();
+
     connect(bookmngrThr, &QThread::finished, bookmarkMngr, &QObject::deleteLater);
     connect(bookmngrThr, &QThread::finished, bookmngrThr, &QObject::deleteLater);
     bookmarkMngr->moveToThread(bookmngrThr);
     bookmngrThr->start();
+        bookmngrThr->setPriority(QThread::HighPriority);
   //  QMetaObject::invokeMethod(bookmarkMngr, "start");
    // bookmarkMngr.start();
 

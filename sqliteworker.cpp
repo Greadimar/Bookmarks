@@ -64,6 +64,7 @@ bool SqliteWorker::generateBookmarks(const QPointer<TimeAxis>& ta, int count){
     int chunksIt = 0;
     int k = 0;
     int curPrg = 0;
+    emit sendPrg(0);
     while (it < count){
         //if (!isRunning) break;
         QVector<Bookmark> vec;

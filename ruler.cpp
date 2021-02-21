@@ -31,18 +31,28 @@ Ruler::Ruler(const Palette &plt, RenderInfo &ri, const QPointer<TimeAxis> &c): m
     });
 
     //init animation
-    aniZoomOffset = makeAnimation(m_ta, "zoomOffMsecs");
-    aniMin = makeAnimation(m_ta, "min");
-    aniMax = makeAnimation(m_ta, "max");
-    aniDragOffset = makeAnimation(m_ta, "dragOffset");
-    aniDragCurOffset = makeAnimation(m_ta, "dragOffsetCur");
+    aniZoomOffset = makeZoomAnimation(m_ta, "zoomOffMsecs");
+    aniMin = makeZoomAnimation(m_ta, "min");
+    aniMax = makeZoomAnimation(m_ta, "max");
+    aniDragOffset = makeZoomAnimation(m_ta, "dragOffset");
+    aniDragCurOffset = makeZoomAnimation(m_ta, "dragOffsetCur");
+
+    aniInertDragOffset = makeInertAnimation(m_ta, "dragOffset");
+    aniInertMin = makeInertAnimation(m_ta, "min");
+    aniInertMax = makeInertAnimation(m_ta, "max");
 
 
-    aniParGroup = new QParallelAnimationGroup(this);
-    aniParGroup->addAnimation(aniZoomOffset);
-    aniParGroup->addAnimation(aniMin);
-    aniParGroup->addAnimation(aniMax);
-    aniParGroup->addAnimation(aniDragOffset);
+    aniZoomParGroup = new QParallelAnimationGroup(this);
+    aniZoomParGroup->addAnimation(aniZoomOffset);
+    aniZoomParGroup->addAnimation(aniMin);
+    aniZoomParGroup->addAnimation(aniMax);
+    aniZoomParGroup->addAnimation(aniDragOffset);
+
+    aniInertParGroup = new QParallelAnimationGroup(this);
+    aniInertParGroup->addAnimation(aniInertMin);
+    aniInertParGroup->addAnimation(aniInertMax);
+    aniInertParGroup->addAnimation(aniInertDragOffset);
+
 
     aniZoomOffset->setDuration(animationDuration);
     aniMin->setDuration(animationDuration);
@@ -51,9 +61,12 @@ Ruler::Ruler(const Palette &plt, RenderInfo &ri, const QPointer<TimeAxis> &c): m
     aniDragOffset->setDuration(animationDuration);
     aniDragCurOffset->setDuration(animationDuration);
 
-    connect(aniParGroup, &QParallelAnimationGroup::finished, this, [=](){
+    connect(aniZoomParGroup, &QParallelAnimationGroup::finished, this, [=](){
         dbg("after");
     });
+
+
+    //init timer for calculating acceleration on drag
 
 
 }
@@ -119,12 +132,16 @@ void Ruler::paint(QPainter *p, const QStyleOptionGraphicsItem *, QWidget *) {
 
 }
 
-QPropertyAnimation *Ruler::makeAnimation(QObject *obj, const QString &propValue){
+QPropertyAnimation *Ruler::makeZoomAnimation(QObject *obj, const QString &propValue){
     QPropertyAnimation* anim = new QPropertyAnimation(obj, propValue.toUtf8(), this);
-    anim->setEasingCurve(QEasingCurve::Type::Linear);
+    anim->setEasingCurve(zoomCurve);
     return anim;
 }
-
+QPropertyAnimation *Ruler::makeInertAnimation(QObject *obj, const QString &propValue){
+    QPropertyAnimation* anim = new QPropertyAnimation(obj, propValue.toUtf8(), this);
+    anim->setEasingCurve(inertCurve);
+    return anim;
+}
 
 void Ruler::zoomToCenter(float targetZoomRatio){
 
@@ -151,7 +168,7 @@ void Ruler::zoomToCenter(float targetZoomRatio){
     }
         break;
     default:{
-        dbg("before");
+      //  dbg("before");
         aniMax->setStartValue(m_ta->getMax());
         aniMax->setEndValue(targetMax);
         aniMin->setStartValue(m_ta->getMin());
@@ -160,8 +177,8 @@ void Ruler::zoomToCenter(float targetZoomRatio){
         aniZoomOffset->setEndValue(targetZoomOffset);
         aniDragOffset->setStartValue(m_ta->getDragOffsetPx());
         aniDragOffset->setEndValue(targetDragOffset);
-        if (aniParGroup->state() == QParallelAnimationGroup::State::Running) aniParGroup->stop();
-        aniParGroup->start();
+        if (aniZoomParGroup->state() == QParallelAnimationGroup::State::Running) aniZoomParGroup->stop();
+        aniZoomParGroup->start();
 
     }
         break;

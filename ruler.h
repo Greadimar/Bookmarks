@@ -21,6 +21,7 @@
 #include "palette.h"
 #include "renderinfo.h"
 #include <QParallelAnimationGroup>
+#include <QElapsedTimer>
 
 class Ruler: public QGraphicsObject{
 public:
@@ -37,6 +38,8 @@ private:
     RenderInfo& m_ri;
 
     Animation animation{Animation::noAnimation};
+    QEasingCurve zoomCurve{QEasingCurve::Linear};
+    QEasingCurve inertCurve{QEasingCurve::OutCirc};
 
 
     QPointer<TimeAxis> m_ta;
@@ -49,7 +52,13 @@ private:
     QPropertyAnimation* aniDragCurOffset;
     QPropertyAnimation* aniMin;
     QPropertyAnimation* aniMax;
-    QParallelAnimationGroup* aniParGroup;
+    QParallelAnimationGroup* aniZoomParGroup;
+
+    QPropertyAnimation* aniInertDragOffset;
+    QPropertyAnimation* aniInertMin;
+    QPropertyAnimation* aniInertMax;
+
+    QParallelAnimationGroup* aniInertParGroup;
 
     //        QAnimationGroup* g = new QAnimationGroup();
 
@@ -60,6 +69,7 @@ private:
     float hour2xLabelsOffsetToCenter = 0;
 
     int mouseXPosOnPress{0};
+    QElapsedTimer timerOnPress;
     int curMouseXPos{0};
 
     void zoomToCenter(float targetZoomRatio);
@@ -70,7 +80,8 @@ private:
 
     void paint(QPainter *p, const QStyleOptionGraphicsItem *, QWidget *) override;
 
-    QPropertyAnimation* makeAnimation(QObject* obj, const QString& propValue);
+    QPropertyAnimation* makeZoomAnimation(QObject* obj, const QString& propValue);
+    QPropertyAnimation* makeInertAnimation(QObject* obj, const QString& propValue);
 
 
 private: //events
@@ -97,9 +108,9 @@ private: //events
         //set targetZoom
         if (animation != Animation::noAnimation){
             if ((curDelta > 0 && delta < 0) || (curDelta < 0 && delta > 0)){    //stop animation for switching direction
-                aniParGroup->stop();
+                aniZoomParGroup->stop();
             }
-            if (aniParGroup->state() == QParallelAnimationGroup::State::Running){
+            if (aniZoomParGroup->state() == QParallelAnimationGroup::State::Running){
                 targetZoomInRatio += zoomInStep;
                 targetZoomOutRatio -= zoomOutStep;
             }
@@ -110,6 +121,7 @@ private: //events
         }
 
         delta = curDelta;
+
         if (delta > 0)
             zoomToCenter(targetZoomInRatio);
         else
@@ -121,8 +133,9 @@ private: //events
 
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override{
         mouseXPosOnPress = event->pos().rx();
+        timerOnPress.restart();
         if (event->button() == Qt::MidButton){
-            aniParGroup->stop();
+            aniZoomParGroup->stop();
             auto hourw = m_ta->rulerWidth/24.;
             auto dayw = static_cast<float>(m_ta->rulerWidth);
             m_ta->setHourWidthInPx(hourw);
@@ -146,7 +159,7 @@ private: //events
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override{
         // qDebug() << "mv";
 
-        aniParGroup->stop();
+        aniZoomParGroup->stop();
         curMouseXPos = event->pos().rx();
         m_ta->setDragOffsetCurPx(mouseXPosOnPress - curMouseXPos);
         m_ta->setMin(m_ta->getZoomOffsetMsecs() + m_ta->msecFromPx(m_ta->getDragOffsetPx() + m_ta->getDragOffsetCurPx()));
@@ -160,27 +173,39 @@ private: //events
     void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override{
 
         curMouseXPos = mapToScene(event->pos()).rx();
-         qDebug() << "hv" << curMouseXPos;
+        // qDebug() << "hv" << curMouseXPos;
     }
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override{
         event->accept();
+        aniZoomParGroup->stop();
+        aniInertParGroup->stop();
         auto targetDragOffsetPx(m_ta->getDragOffsetPx() + m_ta->getDragOffsetCurPx());
         auto targetDragOffsetCurPx(0);
+        m_ta->setDragOffsetPx(targetDragOffsetPx);
+        m_ta->setDragOffsetCurPx(targetDragOffsetCurPx);
+
         switch (animation){
         case Animation::animationWithInertion: {
-            static const float magnitude{0.1};
-            aniDragOffset->setStartValue(m_ta->getDragOffsetPx());
-            aniDragOffset->setEndValue(targetDragOffsetPx*magnitude);
-            aniDragCurOffset->setStartValue(m_ta->getDragOffsetCurPx());
-            aniDragCurOffset->setEndValue(0);
-            aniDragOffset->start();
-            aniDragCurOffset->start();
 
+            int curReleaseMouseXPos = mapToScene(event->pos()).rx();
+            float startVelocity =  (mouseXPosOnPress - curReleaseMouseXPos) / static_cast<double>(timerOnPress.elapsed());
+
+            float targetInertionDragOffset = targetDragOffsetPx + startVelocity*animationDuration;
+
+            qDebug() << "Inertia: " << curReleaseMouseXPos << startVelocity << targetInertionDragOffset;
+
+            aniInertDragOffset->setStartValue(targetDragOffsetPx);
+            aniInertDragOffset->setEndValue(targetInertionDragOffset);
+            aniInertMin->setStartValue(m_ta->getMin());
+            auto targetMin = m_ta->getZoomOffsetMsecs() + m_ta->msecFromPx(targetInertionDragOffset);
+            aniInertMin->setEndValue(targetMin);
+            aniInertMax->setStartValue(m_ta->getMax());
+            aniInertMax->setEndValue(targetMin + m_ta->msecFromPx(m_ta->rulerWidth));
+            aniInertParGroup->start();
         }
             break;
         default:
-            m_ta->setDragOffsetPx(targetDragOffsetPx);
-            m_ta->setDragOffsetCurPx(targetDragOffsetCurPx);
+
             break;
         }
 
@@ -188,7 +213,7 @@ private: //events
     }
 
     void dbg(QString n){
-        qDebug() << n << " ani min max" << m_ta->getMin() << m_ta->getMax();
+        qDebug() << n << "ani min max" << m_ta->getMin() << m_ta->getMax();
         qDebug() << n <<" ani zoom" << m_ta->getZoomOffsetMsecs();
         qDebug() << n <<" ani step drag" << m_ta->getStepInPx() << m_ta->getDragOffsetPx();
         qDebug() << n <<" ani day hour" << m_ta->getDayWidthInPx() << m_ta->getHourWidthInPx();
