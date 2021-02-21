@@ -143,6 +143,7 @@ private: //events
             m_ta->setDayWidthInPx(dayw);
             m_ta->setDragOffsetPx(0);
             m_ta->setDragOffsetCurPx(0);
+            m_ta->setZoomOffsetMsecs(0);
 
             m_ta->step = TimeInfo::msecsInhour.count();
             m_ta->setMin(0);
@@ -159,12 +160,14 @@ private: //events
     }
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override{
         // qDebug() << "mv";
-
+        aniInertParGroup->stop();
         aniZoomParGroup->stop();
         curMouseXPos = event->pos().rx();
+        dbg("sfd");
         m_ta->setDragOffsetCurPx(mouseXPosOnPress - curMouseXPos);
         m_ta->setMin(m_ta->getZoomOffsetMsecs() + m_ta->msecFromPx(m_ta->getDragOffsetPx() + m_ta->getDragOffsetCurPx()));
         m_ta->setMax(m_ta->getMin() + m_ta->msecFromPx(m_ta->rulerWidth));
+          dbg("fff");
         return;
     }
     void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override{

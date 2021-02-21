@@ -20,6 +20,7 @@ public:
         curVec << Bookmark(9999,9999);
         curVec.last().setName("bookmark 99999999");
     }
+    void clear(){curVec.clear();}
     QVariant data(const QModelIndex &index, int role) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
 private:

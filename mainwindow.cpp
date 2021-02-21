@@ -64,6 +64,7 @@ MainWindow::MainWindow(QWidget *parent)
         QPushButton* pb = new QPushButton("Сгенерировать");
         connect(pb, &QPushButton::clicked , this , [=, &d](){
             bookmarkMngr->stop();
+            view->getModel()->clear();
             curSize = sb->value();
             state = State::generating;
             QMetaObject::invokeMethod(bookmarkMngr.data(), "generateBookmarks", Q_ARG(int, sb->value()));

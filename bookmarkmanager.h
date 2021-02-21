@@ -94,11 +94,11 @@ private:
     void collect(){
         // qDebug() << "recollect";
        // auto startCollecting = std::chrono::system_clock::now();
-        int start = m_ta->getMin();
-        int end = m_ta->getMax();
+        int start = 0;// m_ta->getMin() - m_ta->msecFromPx(m_ta->getDragOffsetPx());
+        int end = TimeInfo::msecsInDay.count();
         int duration = m_ta->getUnitingSpread();
-
-        *computingBuffer = sqlworker->getMultiBookmarks(start, end, duration);
+        int d2 = m_ta->msecFromPx(m_ta->pxSpreadToUnite);
+        *computingBuffer = sqlworker->getMultiBookmarks(start, end, d2);
         if (!bufferIsReady){
             computingBuffer = readyBuffer.exchange(computingBuffer);
             bufferIsReady.store(true);

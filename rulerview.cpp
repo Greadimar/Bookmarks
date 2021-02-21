@@ -1,5 +1,5 @@
 #include "rulerview.h"
-#include "extratablemodel.h"
+
 #include <QHeaderView>
 #include "extratableview.h"
 Ruler *RuleView::getRuler() const
@@ -7,20 +7,21 @@ Ruler *RuleView::getRuler() const
     return m_ruler;
 }
 
-void RuleView::initElements(){
-    //    auto t = new TestItem();
+ExtraTableModel *RuleView::getModel() const
+{
+    return model;
+}
 
-//    m_scene.addItem(t);
-    //   setSceneRect();
-    ///1     t->setPos(111,111);
+void RuleView::initElements(){
+
     m_ruler = new Ruler(plt, renderInfo, m_ta);
     m_line = new BookmarksLine(plt, m_bkmngr, renderInfo, m_ta );
 
     //init table
 
-    auto model = new ExtraTableModel(m_ta, m_bkmngr, renderInfo.renderStep, this);
+    model = new ExtraTableModel(m_ta, m_bkmngr, renderInfo.renderStep, this);
     extraTable = new ExtraTableView(tableIsHovered);
-   // extraTable->setMinimumSize({200,200});
+    extraTable->setMinimumHeight(400);
     extraTable->setModel(model);
     extraTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     extraTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -32,7 +33,7 @@ void RuleView::initElements(){
     extraTable->setColumnWidth(1, fontMetrics().horizontalAdvance("hh:mm:ss:zzzz") + paddings);
     extraTable->setColumnWidth(2, fontMetrics().horizontalAdvance("hh:mm:ss:zzzz") + paddings);
     extraTable->resizeColumnsToContents();
-    extraTable->setMinimumSize(extraTable->sizeHint());
+   // extraTable->setMinimumSize(extraTable->sizeHint());
     extraTable->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
 
     //init positions

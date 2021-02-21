@@ -17,7 +17,7 @@
 #include <QGraphicsProxyWidget>
 #include <QTableView>
 #include <QGraphicsScene>
-
+#include "extratablemodel.h"
 class RuleView : public QGraphicsView
 {
     Q_OBJECT
@@ -47,6 +47,8 @@ public:
 
     Ruler *getRuler() const;
 
+    ExtraTableModel *getModel() const;
+
 private:
 
     QGraphicsScene m_scene;
@@ -55,6 +57,7 @@ private:
     //
     QPointer<BookmarkManager> m_bkmngr;
     QPointer<TimeAxis> m_ta;
+    ExtraTableModel* model;
     QTableView* extraTable;
     QGraphicsProxyWidget* proxyWtTable;
 
