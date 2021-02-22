@@ -18,13 +18,11 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     bookmark.cpp \
     bookmarkmanager.cpp \
-  #  filemap.cpp \
     bookmarksline.cpp \
     extratablemodel.cpp \
     extratableview.cpp \
     main.cpp \
     mainwindow.cpp \
-  #  qfilebuffer.cpp \
     ruler.cpp \
     rulerview.cpp \
     timeaxis.cpp \
@@ -36,11 +34,9 @@ HEADERS += \
     bookmarkmanager.h \
     bookmarksline.h \
     common.h \
-  #  filemap.h \
     extratablemodel.h \
     extratableview.h \
     mainwindow.h \
-  #  qfilebuffer.h \
     palette.h \
     renderinfo.h \
     ruler.h \
