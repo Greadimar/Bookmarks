@@ -248,20 +248,32 @@ std::optional<MultiBookmark> SqliteWorker::getBookmarkZone(const int& mark, int&
     if (count == 0) return std::nullopt;
     auto bk = getBookmarkByRow(indexStartRow);
     if (!bk.has_value()) return std::nullopt;
-
     else{
-        auto targetMbk = getTargetBookmarkZone(bk.value(), duration);
-        if (!targetMbk.has_value()) return std::nullopt;
-        next = targetMbk->start + duration;
-        return targetMbk;
+
+
+        if (count == 1){
+            next = bk->start + duration;
+            int updateEndRow = getRowByEndMark(next);
+            if (updateEndRow > indexEndRow) return getBookmarkZone(bk->start, next, duration);
+            return MultiBookmark(bk.value());
+        }
+        else{
+            auto lastbk = getBookmarkByRow(indexEndRow);
+            MultiBookmark mb(bk->start, lastbk->end);
+            int updateEndRow = getRowByEndMark(lastbk->end);
+            mb.count = count;
+            next = lastbk->end;
+            if (updateEndRow > indexEndRow) return getBookmarkZone(bk->start, next, duration);
+            return mb;
+        }
 
     }
 }
-
-std::optional<MultiBookmark> SqliteWorker::getTargetBookmarkZone(const Bookmark &bk, const int duration)
+/*
+std::optional<MultiBookmark> SqliteWorker::getTargetBookmarkZone(const int start, const int end)
 {
-    int indexStartRow = getRowByStartMark(bk.start);
-    int indexEndRow = getRowByEndMark(bk.start + duration);
+    int indexStartRow = getRowByStartMark(start);
+    int indexEndRow = getRowByEndMark(end);
     if (indexEndRow == 0 || indexStartRow == 0) return std::nullopt;
 
     int count = indexEndRow - indexStartRow + 1;
@@ -270,13 +282,18 @@ std::optional<MultiBookmark> SqliteWorker::getTargetBookmarkZone(const Bookmark 
     if (count == 1){
         return MultiBookmark(bk);
     }
-    auto lastbk = getBookmarkByRow(indexEndRow);
+
+
     if (!lastbk.has_value()) return std::nullopt;
-    MultiBookmark mbk(bk.start, lastbk->start);
+    MultiBookmark mbk(bk.start, lastbk->end);
     mbk.count = count;
+    if (getRowByEndMark(lastbk->end) != indexEndRow){
+        auto adjustedMbkRes = getTargetBookmarkZone(bk, lastbk->end - bk.start);
+        if (adjustedMbkRes.has_value()) mbk = adjustedMbkRes.value();
+    }
     return mbk;
 }
-
+*/
 int SqliteWorker::getRowByStartMark(const int &mark)
 {
     char quGetRow[255];

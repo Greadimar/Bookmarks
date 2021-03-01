@@ -6,7 +6,7 @@
 #include <QThread>
 #include <QDebug>
 #include <QObject>
-#include "qfilebuffer.h"
+
 #include <atomic>
 #include <QMutex>
 #include <QPointer>
@@ -45,8 +45,6 @@ public:
 
     }
 
-
-    QFileBuffer& getFileWorker();
 
     // std::atomic<BookmarkVec*> readyBuffer = &bookmarksBuffer[1];
     QVector<MultiBookmark>& getToDisplay(){
